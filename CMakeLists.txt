@@ -1,0 +1,83 @@
+cmake_minimum_required(VERSION 3.28)
+
+# ---- wxl: базовая библиотека Беседки, соседнее дерево ----
+#
+# Задаётся до project() по той же причине, что и у Буквицы: wxl собирается с
+# `import std;`, а экспериментальный шлюз CMake для него открывается только в
+# самом верхнем CMakeLists и только до project(). Скрипт шлюза живёт в wxl и
+# знает UUID, привязанный к версии CMake, — включаем его оттуда, чтобы не
+# заводить второе место, где этот UUID придётся обновлять.
+set(BESEDKA_WXL_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../wxl" CACHE PATH
+    "Корень дерева wxl (даёт wxl::text, wxl::rsdn, wxl::winui)")
+
+if(NOT EXISTS "${BESEDKA_WXL_ROOT}/cmake/wxl_import_std_gate.cmake")
+    message(FATAL_ERROR
+        "Не найден wxl: ожидался в ${BESEDKA_WXL_ROOT}. "
+        "Задайте -DBESEDKA_WXL_ROOT=<путь к дереву wxl>.")
+endif()
+
+set(BESEDKA_WXL_CMAKE_DIR "${BESEDKA_WXL_ROOT}/cmake")
+
+# vcpkg — ради cppwinrt: из него и проекция WinUI 3 под wxl.winui, и заголовки
+# пространств Windows.*, которыми Беседка ходит в сеть. До project(), потому
+# что ставит CMAKE_TOOLCHAIN_FILE, а его после первого project() уже никто не
+# читает.
+include("${BESEDKA_WXL_CMAKE_DIR}/vcpkg_bootstrap.cmake")
+include("${BESEDKA_WXL_CMAKE_DIR}/wxl_import_std_gate.cmake")
+
+project(Besedka
+    VERSION 0.1.0
+    DESCRIPTION "Besedka: RSDN forum client"
+    LANGUAGES CXX)
+
+# C++23 требует wxl от своих потребителей: разойдясь стандартом, они дают
+# C5050 «mismatched C++ versions» на каждый импорт и падение на компоновке.
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Ключи языка — до подключения wxl и для всего дерева сразу. CMake считает BMI
+# годным только там, где язык настроен так же: цель с другим набором получает
+# свою копию модуля в синтетической цели `<цель>@synth_N`, а две копии одного
+# модуля в одной цели роняют сборку. /W4 и определения стоят ниже: они —
+# дело Беседки, а не wxl.
+if(MSVC)
+    add_compile_options(/utf-8 /permissive- /Zc:__cplusplus)
+endif()
+
+# ---- Подключение wxl ----
+#
+# Берутся подкаталоги с исходниками, а не корневые CMakeLists модулей: те
+# устроены как самостоятельные проекты и тянут Boost, GTest и генератор
+# проекции — всё это нужно самой wxl и не нужно клиенту форума.
+include("${BESEDKA_WXL_CMAKE_DIR}/wxl_helpers.cmake")
+
+if(NOT TARGET wxl::core)
+    add_subdirectory("${BESEDKA_WXL_ROOT}/wxl.core/src" "${CMAKE_BINARY_DIR}/wxl.core" EXCLUDE_FROM_ALL)
+endif()
+if(NOT TARGET wxl::text)
+    add_subdirectory("${BESEDKA_WXL_ROOT}/wxl.text/src" "${CMAKE_BINARY_DIR}/wxl.text" EXCLUDE_FROM_ALL)
+endif()
+
+# Цель, чьи исходники видят заголовки wxl, компилирует их `import std;` сама:
+# без этих двух свойств MSVC не найдёт модуль std, а CMake не станет сканировать
+# обычные .cpp на импорты.
+function(besedka_consumes_wxl target)
+    set_target_properties(${target} PROPERTIES
+        CXX_MODULE_STD ON
+        CXX_SCAN_FOR_MODULES ON
+    )
+endfunction()
+
+# Своё Беседки — строго после подключения wxl: у wxl свои NOMINMAX и
+# WIN32_LEAN_AND_MEAN в platform.h, и наши дали бы C4005 на каждом её файле.
+if(MSVC)
+    add_compile_options(/W4)
+    add_compile_definitions(UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+endif()
+
+option(BESEDKA_BUILD_TESTS "Собирать тесты" ON)
+if(BESEDKA_BUILD_TESTS)
+    enable_testing()
+endif()
+
+add_subdirectory(Forum)

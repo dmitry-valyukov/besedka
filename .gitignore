@@ -1,0 +1,14 @@
+# Сборка
+build/
+out/
+CMakeUserPresets.json
+
+# Visual Studio
+.vs/
+*.user
+*.VC.db
+*.VC.opendb
+
+# Прочее
+*.log
+*.tmp
