@@ -58,6 +58,21 @@ if(NOT TARGET wxl::text)
     add_subdirectory("${BESEDKA_WXL_ROOT}/wxl.text/src" "${CMAKE_BINARY_DIR}/wxl.text" EXCLUDE_FROM_ALL)
 endif()
 
+# Будущее (wxl::future), которым транспорт отдаёт ответ, и всё, на чём оно
+# стоит.
+if(NOT TARGET wxl::async)
+    add_subdirectory("${BESEDKA_WXL_ROOT}/wxl.async/src" "${CMAKE_BINARY_DIR}/wxl.async" EXCLUDE_FROM_ALL)
+endif()
+
+# Читатель JSON, а с ним и wxl.xml: арену -- схему хранения дерева -- он
+# берёт оттуда, а не заводит свою.
+if(NOT TARGET wxl::xml)
+    add_subdirectory("${BESEDKA_WXL_ROOT}/wxl.xml/src" "${CMAKE_BINARY_DIR}/wxl.xml" EXCLUDE_FROM_ALL)
+endif()
+if(NOT TARGET wxl::json)
+    add_subdirectory("${BESEDKA_WXL_ROOT}/wxl.json/src" "${CMAKE_BINARY_DIR}/wxl.json" EXCLUDE_FROM_ALL)
+endif()
+
 # Цель, чьи исходники видят заголовки wxl, компилирует их `import std;` сама:
 # без этих двух свойств MSVC не найдёт модуль std, а CMake не станет сканировать
 # обычные .cpp на импорты.
@@ -78,6 +93,11 @@ endif()
 option(BESEDKA_BUILD_TESTS "Собирать тесты" ON)
 if(BESEDKA_BUILD_TESTS)
     enable_testing()
+
+    # Тот же gtest, что у wxl, и та же обвязка (wxl_add_gtest): у Беседки
+    # нет причин заводить второй способ писать тесты.
+    find_package(GTest CONFIG REQUIRED)
+    include(GoogleTest)
 endif()
 
 add_subdirectory(Forum)

@@ -1,97 +1,193 @@
-// Проба дороги к api.rsdn.org: запрос списка форумов и вывод его на экран.
+// Проба дороги к api.rsdn.org: четыре запроса подряд -- сервер, витрина
+// форумов, темы одного из них и тело первой темы.
 //
-// Проверяется здесь не список, а три вещи разом. Что HTTPS достаётся даром:
-// шифрует Schannel внутри Windows.Web.Http, своей библиотеки TLS не нужно.
-// Что чтение открыто без входа. И что сборка Беседки правильно связана с wxl:
-// текст с сервера доходит до экрана через wxl::text, а не через свою
-// перекодировку.
+// Проверяется здесь не вывод, а то, что вся дорога работает на живом
+// сервере: HTTPS через Schannel внутри Windows.Web.Http (своей библиотеки
+// TLS не нужно), чтение открыто без входа, ответ разбирает наш wxl::json, и
+// модель получается та, которую ждёт интерфейс.
 //
-// Разбор JSON здесь готовый, из Windows.Data.Json, и это временно: он кладёт
-// COM-объект на каждый узел, а страницы сообщений читаются постоянно. Чем его
-// заменить — записано в docs/decisions.md.
+// Устроена она нарочно так же, как будет устроено приложение, а не проще.
+// Главный поток -- STA с очередью сообщений; запрос уходит с него, ответ
+// C++/WinRT возвращает туда же, и там же ответ превращается в модель. Иначе
+// и нельзя: дерево JSON живёт в пуле STA, а пул привязан к своему потоку.
+// Консольная проба с ожиданием на месте этого бы не показала -- и первая же
+// ошибка нашлась бы уже в приложении.
 //
 // Запуск: build\x64\Forum\Debug\forum-probe.exe
 
 #include <windows.h>
 
 #include <cstdio>
-#include <string>
-#include <string_view>
 
-#include <winrt/Windows.Data.Json.h>
-#include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Foundation.h>
-#include <winrt/Windows.Web.Http.h>
 
+import std;
+import besedka.forum;
+import wxl.async;
+import wxl.core;
 import wxl.text;
 
 namespace {
 
-// Текст с сервера — чужой, и непарный суррогат в нём не запрещён ничем, кроме
-// вежливости. repaired() ставит U+FFFD вместо испорченного и отдаёт то, что
-// печатать уже можно.
+using namespace besedka;
+
 std::string utf8(std::wstring_view text) {
     return std::string(wxl::text::repaired(text).to_utf8().chars());
 }
 
-// Колонка шириной в символах, а не в байтах: printf считает байты, и от
-// кириллицы, у которой их по два на букву, таблица разъезжается. Считает
-// символы wxl::text — своего счёта кодовых точек в проекте нет и не будет.
+/// Колонка шириной в символах, а не в байтах: printf считает байты, и от
+/// кириллицы, у которой их по два на букву, таблица разъезжается.
 std::string padded(std::wstring_view text, std::size_t width) {
-    std::string bytes = std::string(wxl::text::repaired(text).to_utf8().chars());
-    const std::optional<wxl::text::u8_view> checked =
-        wxl::text::checked(std::string_view(bytes));
+    std::string bytes = utf8(text);
+
+    const std::optional<wxl::text::u8_view> checked = wxl::text::checked(std::string_view(bytes));
     const std::size_t points = checked ? wxl::text::count_code_points(*checked) : bytes.size();
+
     if (points < width) bytes.append(width - points, ' ');
+
     return bytes;
 }
 
-std::wstring_view value_or_empty(const winrt::Windows::Data::Json::JsonObject& object,
-                                 const winrt::hstring& name) {
-    if (!object.HasKey(name)) return {};
-    const winrt::Windows::Data::Json::IJsonValue value = object.GetNamedValue(name);
-    if (value.ValueType() != winrt::Windows::Data::Json::JsonValueType::String) return {};
-    return value.GetString();
+/// Время по Гринвичу: модель держит его в UTC, а часовые пояса -- забота
+/// интерфейса, которого тут ещё нет.
+std::string when(std::chrono::system_clock::time_point moment) {
+    return std::format("{:%d.%m.%Y %H:%M}", std::chrono::floor<std::chrono::seconds>(moment));
 }
+
+/// Первые строки текста -- столько, сколько влезает в консоль, не заслоняя
+/// собой остальное.
+std::wstring beginning(std::wstring_view text, std::size_t limit) {
+    const std::size_t stop = std::min(limit, text.size());
+
+    std::wstring shown(text.substr(0, stop));
+
+    for (wchar_t& letter : shown)
+        if (letter == L'\r' || letter == L'\n') letter = L' ';
+
+    if (stop < text.size()) shown += L"…";
+
+    return shown;
+}
+
+/// Шаги пробы, один за другим. Каждый начинается в продолжении
+/// предыдущего, то есть на том же потоке STA.
+class Probe {
+public:
+    void start() { askServiceInfo(); }
+
+    int result() const noexcept { return failed_ ? 1 : 0; }
+
+private:
+    void askServiceInfo() {
+        std::printf("— сервер —\n");
+
+        api_.serviceInfo()
+            .when_succeeded([this](const forum::ServiceInfo& info) noexcept {
+                std::printf("%s, версия %s, собран %s\n\n", utf8(info.name).c_str(),
+                            utf8(info.serverVersion).c_str(), when(info.serverBuildDate).c_str());
+                askForums();
+            })
+            .when_failed([this](const std::exception_ptr& why) noexcept { give_up(why); });
+    }
+
+    void askForums() {
+        std::printf("— витрина —\n");
+
+        api_.forums()
+            .when_succeeded([this](const std::vector<forum::ForumDescription>& forums) noexcept {
+                std::printf("форумов: %zu\n", forums.size());
+
+                for (const forum::ForumDescription& forum : forums)
+                    if (forum.isInTop)
+                        std::printf("%5d  %s %s %s\n", forum.id, padded(forum.code, 14).c_str(),
+                                    padded(forum.name, 34).c_str(), utf8(forum.group.name).c_str());
+
+                std::printf("\n");
+                askTopics(forums.empty() ? 1 : forums.front().id);
+            })
+            .when_failed([this](const std::exception_ptr& why) noexcept { give_up(why); });
+    }
+
+    void askTopics(int forumId) {
+        std::printf("— темы форума %d —\n", forumId);
+
+        api_.topics(forumId, 5)
+            .when_succeeded([this](const forum::MessagePage& page) noexcept {
+                std::printf("всего тем: %d\n", page.total);
+
+                for (const forum::MessageInfo& topic : page.items)
+                    std::printf("%9d  %s %s  ответов: %d\n", topic.id, when(topic.createdOn).c_str(),
+                                padded(topic.subject, 46).c_str(), topic.answersCount);
+
+                std::printf("\n");
+
+                if (page.items.empty()) {
+                    done();
+                    return;
+                }
+
+                askMessage(page.items.front().id);
+            })
+            .when_failed([this](const std::exception_ptr& why) noexcept { give_up(why); });
+    }
+
+    void askMessage(int id) {
+        std::printf("— сообщение %d —\n", id);
+
+        api_.message(id)
+            .when_succeeded([this](const forum::Message& message) noexcept {
+                std::printf("%s, %s\n%s\n%s\n\n", utf8(message.info.subject).c_str(),
+                            utf8(message.info.author.displayName).c_str(),
+                            message.isFormatted ? "тело: серверный HTML" : "тело: разметка автора",
+                            utf8(beginning(message.body, 400)).c_str());
+                done();
+            })
+            .when_failed([this](const std::exception_ptr& why) noexcept { give_up(why); });
+    }
+
+    void give_up(const std::exception_ptr& why) noexcept {
+        failed_ = true;
+
+        try {
+            std::rethrow_exception(why);
+        } catch (const forum::HttpError& refused) {
+            std::printf("не вышло: %s (код %d)\n", refused.what(), refused.status());
+        } catch (const std::exception& broken) {
+            std::printf("не вышло: %s\n", broken.what());
+        }
+
+        done();
+    }
+
+    void done() noexcept { ::PostQuitMessage(0); }
+
+    forum::Api api_;
+    bool failed_ = false;
+};
 
 }  // namespace
 
 int main() {
-    SetConsoleOutputCP(CP_UTF8);
-    winrt::init_apartment();
+    ::SetConsoleOutputCP(CP_UTF8);
 
-    using namespace winrt::Windows::Data::Json;
-    using namespace winrt::Windows::Foundation;
-    using namespace winrt::Windows::Web::Http;
+    // STA, а не MTA: ответ должен вернуться на этот же поток, а вернуть его
+    // сюда C++/WinRT может только через очередь сообщений апартамента.
+    winrt::init_apartment(winrt::apartment_type::single_threaded);
 
-    try {
-        HttpClient client;
-        const winrt::hstring body =
-            client.GetStringAsync(Uri(L"https://api.rsdn.org/forums")).get();
+    // Пул -- один на процесс и на этом потоке. Без него не разберётся ни
+    // один ответ: дерево JSON живёт в нём.
+    wxl::core::sta_memory_pool pool;
 
-        const JsonArray forums = JsonArray::Parse(body);
-        std::printf("Форумов: %u\n\n", forums.Size());
+    Probe probe;
 
-        for (const IJsonValue& item : forums) {
-            const JsonObject forum = item.GetObject();
-            const double id = forum.GetNamedNumber(L"id", 0);
-            const std::wstring_view code = value_or_empty(forum, L"code");
-            const std::wstring_view name = value_or_empty(forum, L"name");
+    probe.start();
 
-            std::wstring_view group;
-            if (forum.HasKey(L"forumGroup") &&
-                forum.GetNamedValue(L"forumGroup").ValueType() == JsonValueType::Object) {
-                group = value_or_empty(forum.GetNamedObject(L"forumGroup"), L"name");
-            }
+    MSG message;
 
-            std::printf("%5d  %s %s %s\n", static_cast<int>(id), padded(code, 18).c_str(),
-                        padded(name, 46).c_str(), utf8(group).c_str());
-        }
-    } catch (const winrt::hresult_error& error) {
-        std::printf("Не вышло: %s (0x%08X)\n", utf8(error.message()).c_str(),
-                    static_cast<unsigned>(error.code()));
-        return 1;
+    while (::GetMessageW(&message, nullptr, 0, 0)) {
+        ::TranslateMessage(&message);
+        ::DispatchMessageW(&message);
     }
 
-    return 0;
+    return probe.result();
 }
