@@ -3,10 +3,12 @@
 // Здесь нет ни wWinMain, ни поднятия Windows App Runtime, ни наследника
 // Application, ни XAML: всё это делает wxl и потом зовёт эту функцию.
 //
-// Что здесь есть -- сборка приложения из экранов и решения о том, что чем
-// сменяется. Экранов четыре, и они те же, что у jana: заставка, витрина
-// форумов, темы форума, сообщения темы. Порядок перехода тот же, а показ
-// сообщения -- свой, через wxl::RsdnBlock.
+// Что здесь есть -- сборка приложения из каркаса и экранов и решения о том,
+// что чем сменяется. Устройство то же, что у jana в `ui/MainWindow.kt`:
+// каркас с верхней панелью, вкладками и полосой состояния, а в середине --
+// экран. Экранов шесть: заставка, витрина форумов, две заглушки за
+// соседними вкладками, темы форума и сообщения темы. Показ сообщения свой,
+// через wxl::RsdnBlock.
 //
 // Запросы задаются отсюда, с потока интерфейса, и сюда же C++/WinRT
 // возвращает ответ -- на том потоке он и разбирается. Почему иначе нельзя,
@@ -16,15 +18,20 @@
 // wxl.core: заголовок, включённый после импорта, MSVC уже не принимает.
 #include <windows.h>
 
+#include <chrono>
 #include <exception>
 #include <filesystem>
+#include <format>
 #include <memory>
 #include <string>
 
 #include "WindowBackdrop.h"
+#include "about_dialog.h"
 #include "forum_screen.h"
 #include "message_screen.h"
+#include "shell.h"
 #include "splash_screen.h"
+#include "stub_screens.h"
 #include "topic_screen.h"
 
 using namespace wxl;
@@ -87,75 +94,152 @@ wxl::Teardown wxl_launched() {
 
     auto api = std::make_shared<forum::Api>();
 
+    auto shell = std::make_shared<Shell>();
     auto splash = std::make_shared<SplashScreen>();
     auto forums = std::make_shared<ForumScreen>();
     auto topics = std::make_shared<TopicScreen>();
     auto messages = std::make_shared<MessageScreen>();
+    auto about = std::make_shared<AboutDialog>();
 
     messages->setBaseDirectory((exeDirectory() / L"Assets").wstring());
+
+    // Заглушки соседних вкладок строятся один раз: они ничего не показывают,
+    // и меняться им не от чего.
+    const UIElement watched = watchedScreen();
+    const UIElement outbox = outboxScreen();
 
     // ---- витрина форумов ----
     //
     // Запрос уходит с этого потока, и продолжения приходят на него же:
     // C++/WinRT возвращает корутину в апартамент, из которого её начали.
     // Поэтому внутри обработчика можно и трогать XAML, и разбирать ответ.
-    const auto loadForums = [api, splash, forums, window] {
+    const auto loadForums = [api, splash, forums, shell] {
         splash->setStatus(L"Читаю витрину форумов…");
-        window.content(splash->root());
+
+        // Панели на время заставки убираются: жать «обновить» и переключать
+        // вкладки, пока не прочитан первый ответ, нечего. У jana на этом
+        // месте пустой Scaffold с одним колечком посередине.
+        shell->setChromeVisible(false);
+        shell->setContent(splash->root());
+        shell->setBusy(true);
+        shell->setStatusText(L"Соединяюсь с api.rsdn.org…");
 
         api->forums()
-            .when_succeeded([splash, forums, window](
+            .when_succeeded([forums, shell](
                                 const std::vector<forum::ForumDescription>& list) noexcept {
                 forums->show(list);
-                window.content(forums->root());
+
+                shell->setBusy(false);
+                shell->setServerStatus(ServerStatus::online);
+                shell->setChromeVisible(true);
+                shell->setContent(forums->root());
+                shell->setStatusText(std::format(L"Форумов на сервере: {}", list.size()));
             })
-            .when_failed([splash](const std::exception_ptr& why) noexcept {
+            .when_failed([splash, shell](const std::exception_ptr& why) noexcept {
                 splash->setError(reasonOf(why));
+
+                shell->setBusy(false);
+                shell->setServerStatus(ServerStatus::offline);
+                shell->setStatusText(L"Сервер не ответил");
             });
     };
 
     splash->onRetry = loadForums;
-    forums->onRefresh = loadForums;
+    shell->onRefresh = loadForums;
+
+    // ---- вкладки ----
+    //
+    // За двумя из трёх пока заглушки, и это то же самое, что у jana:
+    // WatchedScreen и OutboxScreen там ровно такие же.
+    shell->onTab = [forums, shell, watched, outbox](const Tab chosen) {
+        switch (chosen) {
+            case Tab::forums: shell->setContent(forums->root()); break;
+            case Tab::watched: shell->setContent(watched); break;
+            case Tab::outbox: shell->setContent(outbox); break;
+        }
+    };
+
+    // ---- «О программе» ----
+    //
+    // Версия сервера спрашивается при каждом показе, а не один раз при
+    // запуске: диалог открывают редко, а запрос этот дешевле любого другого
+    // в приложении.
+    shell->onAbout = [api, about, window] {
+        about->setServerLine({});
+        about->show(window);
+
+        api->serviceInfo()
+            .when_succeeded([about](const forum::ServiceInfo& info) noexcept {
+                about->setServerLine(
+                    std::format(L"API v{} [{:%d.%m.%Y}]", info.serverVersion,
+                                std::chrono::floor<std::chrono::days>(info.serverBuildDate)));
+            })
+            .when_failed([](const std::exception_ptr&) noexcept {});
+    };
+
+    // ---- вход ----
+    //
+    // Кнопка стоит на своём месте с самого начала, а войти ей пока некуда:
+    // один POST на /connect/token -- работа после хранилища, и дверь для
+    // него в транспорте уже есть.
+    shell->onLogin = [shell] {
+        shell->setStatusText(L"Вход ещё не сделан: за кнопкой будет POST на /connect/token.");
+    };
 
     // ---- темы форума ----
-    forums->onOpen = [api, topics, window](const forum::ForumDescription& forum) {
+    forums->onOpen = [api, topics, shell](const forum::ForumDescription& forum) {
         topics->setForum(forum);
-        window.content(topics->root());
+
+        // Панели уходят: у экрана тем свой заголовок со стрелкой назад, и
+        // две полосы подряд читались бы как одна сломанная. Так же и у jana.
+        shell->setChromeVisible(false);
+        shell->setContent(topics->root());
+        shell->setStatusText(forum.name);
 
         api->topics(forum.id, 50)
-            .when_succeeded([topics](const forum::MessagePage& page) noexcept { topics->show(page); })
-            .when_failed([topics](const std::exception_ptr& why) noexcept {
+            .when_succeeded(
+                [topics](const forum::MessagePage& page) noexcept { topics->show(page); })
+            .when_failed([topics, shell](const std::exception_ptr& why) noexcept {
                 topics->setError(reasonOf(why));
+                shell->setServerStatus(ServerStatus::offline);
             });
     };
 
-    topics->onBack = [forums, window] { window.content(forums->root()); };
+    topics->onBack = [forums, shell] {
+        shell->setChromeVisible(true);
+        shell->setContent(forums->root());
+        shell->setStatusText({});
+    };
 
     // ---- сообщения темы ----
     //
     // Тела приезжают вместе со списком: одна поездка на всю тему.
-    forums->onRefresh = loadForums;
-
-    topics->onOpen = [api, messages, window](const forum::MessageInfo& topic) {
+    topics->onOpen = [api, messages, shell](const forum::MessageInfo& topic) {
         messages->setTopic(topic);
-        window.content(messages->root());
+
+        shell->setContent(messages->root());
+        shell->setStatusText(topic.subject);
 
         api->answers(topic.id, 200)
             .when_succeeded(
                 [messages](const forum::MessagePage& page) noexcept { messages->show(page); })
-            .when_failed([messages](const std::exception_ptr& why) noexcept {
+            .when_failed([messages, shell](const std::exception_ptr& why) noexcept {
                 messages->setError(reasonOf(why));
+                shell->setServerStatus(ServerStatus::offline);
             });
     };
 
-    messages->onBack = [topics, window] { window.content(topics->root()); };
+    messages->onBack = [topics, shell] {
+        shell->setContent(topics->root());
+        shell->setStatusText({});
+    };
 
-    window.content(splash->root());
+    window.content(shell->root());
     window.activate();
 
     loadForums();
 
     // Обработчик держит окно и экраны живыми ровно столько, сколько живёт
     // приложение.
-    return [window, api, splash, forums, topics, messages](Reason) {};
+    return [window, api, shell, splash, forums, topics, messages, about](Reason) {};
 }

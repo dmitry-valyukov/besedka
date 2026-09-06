@@ -10,11 +10,17 @@
 
 add_executable(Besedka WIN32
     src/main.cpp
+    src/shell.cpp
     src/splash_screen.cpp
+    src/stub_screens.cpp
+    src/about_dialog.cpp
     src/forum_screen.cpp
     src/topic_screen.cpp
     src/message_screen.cpp
+    src/shell.h
     src/splash_screen.h
+    src/stub_screens.h
+    src/about_dialog.h
     src/forum_screen.h
     src/topic_screen.h
     src/message_screen.h

@@ -11,4 +11,5 @@
 #include "generated/Microsoft.UI.Xaml.Media.h"
 #include "generated/brushes.h"
 #include "RsdnBlock.h"
+#include "ShowDialog.h"
 #include "launch.h"

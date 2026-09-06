@@ -71,43 +71,13 @@ ForumScreen::ForumScreen() {
         Margin{kListPadding, 8, kListPadding, kListPadding},
     };
 
-    counter_ = TextBlock{
-        column = 1,
-        fontSize = kBodySize,
-        vAlign.center,
-        foreground = brushes.textFillColorTertiary,
-    };
-
+    // Своего заголовка у витрины нет: имя, состояние сервера и обновление
+    // живут на верхней панели каркаса -- как в jana, где ForumListScreen
+    // отдаёт всё это Scaffold'у.
     root_ = Grid{
         isTabStop = true,
-        background = brushes.solidBackgroundFillColorBase,
-        rowDefinitions = L"auto,*",
-
-        Grid{
-            row = 0,
-            Margin{kListPadding, 20, kListPadding, 4},
-            columnDefinitions = L"auto,*,auto",
-            columnSpacing = 16,
-
-            TextBlock{
-                column = 0,
-                L"Форумы",
-                fontSize = 22,
-                FontWeight{600},
-                foreground = brushes.textFillColorPrimary,
-                vAlign.center,
-            },
-            counter_.value(),
-            Button{
-                column = 2,
-                L"Обновить",
-                vAlign.center,
-                onClick = [this](Object const&, RoutedEventArgs&) { if (onRefresh) onRefresh(); },
-            },
-        },
 
         ScrollViewer{
-            row = 1,
             content = groups_.value(),
         },
     };
@@ -117,8 +87,6 @@ void ForumScreen::show(const std::vector<forum::ForumDescription>& forums) {
     shown_ = forums;
 
     groups_.value().children().clear();
-
-    counter_.value().text(std::format(L"{} на сервере", shown_.size()));
 
     // Группы в том порядке, который назначил им сервер: sortOrder для того и
     // прислан. Внутри группы порядок оставлен как есть -- сервер отдаёт
