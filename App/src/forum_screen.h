@@ -33,7 +33,6 @@ public:
     void show(const std::vector<forum::ForumDescription>& forums);
 
     std::function<void(const forum::ForumDescription&)> onOpen;
-    std::function<void()> onRefresh;
 
 private:
     /// Одна строка витрины. Кнопка, потому что по форуму щёлкают, а всё,
@@ -43,7 +42,6 @@ private:
 
     wxl::Nullable<wxl::Grid> root_ = nullptr;
     wxl::Nullable<wxl::StackPanel> groups_ = nullptr;
-    wxl::Nullable<wxl::TextBlock> counter_ = nullptr;
 
     /// Форумы, по которым построена нынешняя витрина: строка кнопки держит
     /// не сам форум, а его место здесь.
