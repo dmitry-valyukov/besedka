@@ -35,13 +35,27 @@ constexpr double kDateWidth = 80;      // TopicCard: фиксированная 
 /// Дата так, как её читают: время сервера в UTC, а человек живёт в своём
 /// поясе. Перевод делает current_zone() -- база часовых поясов у Windows
 /// своя и обновляется вместе с ней.
+///
+/// Подробность зависит от давности, как в jana (ui/utils/DateUtils.kt):
+/// сегодняшнее сообщение -- одно время, этого года -- день с месяцем,
+/// прошлогоднее -- одна дата. Число, повторяющее сегодняшнее у каждой из
+/// полусотни строк, ничего не говорит; час говорит.
 std::wstring dateText(std::chrono::system_clock::time_point moment) {
-    if (moment == std::chrono::system_clock::time_point{}) return {};
+    using namespace std::chrono;
 
-    const std::chrono::zoned_time local{std::chrono::current_zone(),
-                                        std::chrono::floor<std::chrono::seconds>(moment)};
+    if (moment == system_clock::time_point{}) return {};
 
-    return std::format(L"{:%d.%m.%y %H:%M}", local);
+    const zoned_time local{current_zone(), floor<seconds>(moment)};
+    const zoned_time now{current_zone(), floor<seconds>(system_clock::now())};
+
+    const year_month_day then{floor<days>(local.get_local_time())};
+    const year_month_day today{floor<days>(now.get_local_time())};
+
+    if (then == today) return std::format(L"{:%H:%M}", local);
+
+    if (then.year() == today.year()) return std::format(L"{:%d.%m %H:%M}", local);
+
+    return std::format(L"{:%d.%m.%y}", local);
 }
 
 }  // namespace
