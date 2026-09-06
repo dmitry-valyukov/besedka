@@ -88,12 +88,18 @@ wxl::async::future<MessagePage> Api::answers(const int topicId, const int limit,
                                              const int offset) const {
     // order=0 -- в порядке появления: дерево ответов собирается по
     // parentID, и родитель обязан приехать раньше ребёнка.
+    //
+    // withBodies=true -- тела прямо в списке. Сервер это умеет, и потому
+    // тема читается одним запросом, а не одним на список и сотней на
+    // сообщения. formatBody=false -- разметка автора, как и везде.
     return http_
         .get(url(L"messages", {{L"topicID", digits(topicId)},
                                {L"onlyTopics", L"false"},
                                {L"limit", digits(limit)},
                                {L"offset", digits(offset)},
-                               {L"order", L"0"}}))
+                               {L"order", L"0"},
+                               {L"withBodies", L"true"},
+                               {L"formatBody", L"false"}}))
         .next(reading(&readMessagePage));
 }
 

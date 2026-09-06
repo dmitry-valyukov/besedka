@@ -171,7 +171,7 @@ MessagePage readMessagePage(const value& from) {
 
     page.items.reserve(items.size());
 
-    for (const value& item : items) page.items.push_back(readMessageInfo(item));
+    for (const value& item : items) page.items.push_back(readMessage(item));
 
     page.total = number(from["total"]);
     page.offset = number(from["offset"]);
