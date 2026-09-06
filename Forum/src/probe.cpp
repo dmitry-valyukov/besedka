@@ -6,12 +6,14 @@
 // TLS не нужно), чтение открыто без входа, ответ разбирает наш wxl::json, и
 // модель получается та, которую ждёт интерфейс.
 //
-// Устроена она нарочно так же, как будет устроено приложение, а не проще.
-// Главный поток -- STA с очередью сообщений; запрос уходит с него, ответ
-// C++/WinRT возвращает туда же, и там же ответ превращается в модель. Иначе
-// и нельзя: дерево JSON живёт в пуле STA, а пул привязан к своему потоку.
-// Консольная проба с ожиданием на месте этого бы не показала -- и первая же
-// ошибка нашлась бы уже в приложении.
+// Это средство проверки дороги, а не приложение и не его заготовка:
+// приложение -- в `App/`. Здесь важно, что видно в консоли за одну секунду,
+// когда сервер отвечает не то, что вчера.
+//
+// Апартамент STA с очередью сообщений заведён потому же, почему он у
+// приложения: разбор ответа выделяет память из пула STA, а пул привязан к
+// своему потоку -- значит, ответ обязан вернуться на тот же поток, с
+// которого ушёл запрос.
 //
 // Запуск: build\x64\Forum\Debug\forum-probe.exe
 
@@ -115,9 +117,10 @@ private:
             .when_succeeded([this](const forum::MessagePage& page) noexcept {
                 std::printf("всего тем: %d\n", page.total);
 
-                for (const forum::MessageInfo& topic : page.items)
-                    std::printf("%9d  %s %s  ответов: %d\n", topic.id, when(topic.createdOn).c_str(),
-                                padded(topic.subject, 46).c_str(), topic.answersCount);
+                for (const forum::Message& topic : page.items)
+                    std::printf("%9d  %s %s  ответов: %d\n", topic.info.id,
+                                when(topic.info.createdOn).c_str(),
+                                padded(topic.info.subject, 46).c_str(), topic.info.answersCount);
 
                 std::printf("\n");
 
@@ -126,7 +129,7 @@ private:
                     return;
                 }
 
-                askMessage(page.items.front().id);
+                askMessage(page.items.front().info.id);
             })
             .when_failed([this](const std::exception_ptr& why) noexcept { give_up(why); });
     }

@@ -112,7 +112,7 @@ TEST(forum, a_page_of_topics_carries_its_place_in_the_whole) {
     EXPECT_EQ(page.total, 6839);
     EXPECT_EQ(page.offset, 0);
 
-    const forum::MessageInfo& topic = page.items[0];
+    const forum::MessageInfo& topic = page.items[0].info;
 
     EXPECT_EQ(topic.id, 9133148);
     EXPECT_EQ(topic.forumId, 1);
@@ -124,6 +124,24 @@ TEST(forum, a_page_of_topics_carries_its_place_in_the_whole) {
     EXPECT_EQ(topic.author.displayName, L"VladD2");
     EXPECT_EQ(topic.author.role, L"Admin");
     EXPECT_EQ(topic.createdOn, utc(2026, 8, 29, 13, 11, 36, 23));
+}
+
+TEST(forum, a_thread_arrives_with_its_bodies_in_one_answer) {
+    // Тела приходят прямо в списке, когда их попросили: так дерево темы
+    // читается одним запросом, а не одним на список и сотней на сообщения.
+    const parsed answer(R"json({"items":[
+        {"id":9134665,"forumID":1,"topicID":9133148,"parentID":9133148,
+         "author":{"id":81729,"displayName":"Stanislaw K","role":"User"},
+         "subject":"Re: Вроде починил","createdOn":"2026-08-31T12:30:33.9+03:00",
+         "isTopic":false,"answersCount":0,
+         "body":{"isFormatted":false,"text":"VD>банилка\r\n\r\nЯ одного вычислил"}}
+    ],"total":4,"offset":0})json");
+
+    const forum::MessagePage page = forum::readMessagePage(*answer);
+
+    ASSERT_EQ(page.items.size(), 1u);
+    EXPECT_EQ(page.items[0].info.parentId, 9133148);
+    EXPECT_EQ(page.items[0].body, L"VD>банилка\r\n\r\nЯ одного вычислил");
 }
 
 TEST(forum, a_message_brings_the_markup_of_its_author) {
