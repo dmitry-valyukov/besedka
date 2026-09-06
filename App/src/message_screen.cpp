@@ -11,16 +11,37 @@ using namespace wxl::dsl;
 
 namespace {
 
-// Стрелка «назад» из Segoe Fluent Icons. Кодовой точкой, а не самим знаком:
-// он из области частного использования, и в исходнике на его месте видно
-// пустой прямоугольник -- то есть ровно то, что увидит и читающий код.
-constexpr std::wstring_view kBack = L"";
+// Числом, а не знаком в кавычках: знак этот из области частного
+// использования, и в исходнике на его месте стоит пустой прямоугольник.
+constexpr wchar_t kBack = 0xE72B;
 
-/// Отступ на одну ступень ответа. Глубже пятой ступени не отступаем: на
-/// узкой теме в двадцать ответов подряд текст иначе съезжает в столбик
-/// шириной в слово.
-constexpr double kStep = 24.0;
-constexpr int kMaxSteps = 5;
+std::wstring glyph_of(wchar_t code) { return std::wstring(1, code); }
+
+// Числа -- из jana (ui/components/MessageComponents.kt, MessageCard) и её
+// же MessageStyle, собранного по CSS самого rsdn.org.
+constexpr double kIndentStep = 10;    // MessageCard: padding start = depth * 10
+constexpr double kCardGap = 4;        // MessageCard: padding top/bottom
+constexpr double kCardRadius = 4;     // MessageCard: RoundedCornerShape
+constexpr double kCardPaddingX = 10;  // MessageCard: padding horizontal
+constexpr double kCardPaddingY = 6;   // MessageCard: padding vertical
+
+constexpr double kListPadding = 8;   // TopicMessagesScreen: contentPadding
+constexpr double kListSpacing = 4;   // TopicMessagesScreen: verticalArrangement
+
+constexpr double kAuthorSize = 12;
+constexpr double kLabelSize = 11;
+
+/// Глубже этого отступ не растёт. У jana предела нет, но там колонка узкая
+/// и ветки короткие; на форуме с перепиской в тридцать ответов подряд текст
+/// иначе съезжает в столбик шириной в слово.
+constexpr int kMaxSteps = 12;
+
+/// Цвета цитат по уровням -- те самые, что у RSDN в CSS и у jana в
+/// MessageStyle: от тёмно-зелёного к светлому. По ним в переписке видно не
+/// только что это цитата, но и чья.
+constexpr std::uint32_t kQuote1 = 0xFF137900;
+constexpr std::uint32_t kQuote2 = 0xFF74B967;
+constexpr std::uint32_t kQuote3 = 0xFF9FD095;
 
 std::wstring dateText(std::chrono::system_clock::time_point moment) {
     if (moment == std::chrono::system_clock::time_point{}) return {};
@@ -34,11 +55,15 @@ std::wstring dateText(std::chrono::system_clock::time_point moment) {
 }  // namespace
 
 MessageScreen::MessageScreen() {
-    messages_ = StackPanel{Margin{32, 8, 32, 32}};
+    messages_ = StackPanel{
+        hAlign.stretch,
+        spacing = kListSpacing,
+        Margin{kListPadding, 8, kListPadding, kListPadding},
+    };
 
     title_ = TextBlock{
         column = 1,
-        fontSize = 20,
+        fontSize = 18,
         FontWeight{600},
         foreground = brushes.textFillColorPrimary,
         vAlign.center,
@@ -47,7 +72,7 @@ MessageScreen::MessageScreen() {
 
     counter_ = TextBlock{
         column = 2,
-        fontSize = 13,
+        fontSize = 12,
         vAlign.center,
         Margin{16, 0, 0, 0},
         foreground = brushes.textFillColorTertiary,
@@ -60,7 +85,7 @@ MessageScreen::MessageScreen() {
 
         Grid{
             row = 0,
-            Margin{32, 28, 32, 8},
+            Margin{16, 20, 16, 4},
             columnDefinitions = L"auto,*,auto",
             columnSpacing = 12,
 
@@ -68,7 +93,7 @@ MessageScreen::MessageScreen() {
                 column = 0,
                 vAlign.center,
                 toolTip = L"Вернуться к темам",
-                content = FontIcon{glyph = kBack, fontSize = 14},
+                content = FontIcon{glyph = glyph_of(kBack), fontSize = 14},
                 onClick = [this](Object const&, RoutedEventArgs&) { if (onBack) onBack(); },
             },
             title_.value(),
@@ -128,7 +153,7 @@ void MessageScreen::show(const forum::MessagePage& page) {
 }
 
 UIElement MessageScreen::messageCard(const forum::Message& message, const int depth) {
-    const double indent = kStep * std::min(depth, kMaxSteps);
+    const double indent = kIndentStep * std::min(depth, kMaxSteps);
 
     auto head = Grid{
         columnDefinitions = L"auto,*,auto",
@@ -137,14 +162,14 @@ UIElement MessageScreen::messageCard(const forum::Message& message, const int de
         TextBlock{
             column = 0,
             std::wstring(message.info.author.displayName),
-            fontSize = 13,
+            fontSize = kAuthorSize,
             FontWeight{600},
             foreground = brushes.accentTextFillColorPrimary,
         },
         TextBlock{
             column = 1,
             std::wstring(message.info.subject),
-            fontSize = 12,
+            fontSize = kLabelSize,
             foreground = brushes.textFillColorTertiary,
             textTrimming.characterEllipsis,
             vAlign.center,
@@ -152,7 +177,7 @@ UIElement MessageScreen::messageCard(const forum::Message& message, const int de
         TextBlock{
             column = 2,
             dateText(message.info.createdOn),
-            fontSize = 12,
+            fontSize = kLabelSize,
             foreground = brushes.textFillColorTertiary,
             vAlign.center,
         },
@@ -163,19 +188,33 @@ UIElement MessageScreen::messageCard(const forum::Message& message, const int de
     // «:shuffle:», и код в теге языка.
     auto body = RsdnBlock{
         isTextSelectionEnabled = true,
-        Margin{0, 8, 0, 0},
+        Margin{0, 6, 0, 0},
     };
+
+    // Вид цитат -- как на самом RSDN: три оттенка зелёного по уровням.
+    // Числа взяты из MessageStyle у jana, а туда -- из CSS сайта.
+    body.theme(HtmlTheme{
+        .quoteMargin = {12, 2, 0, 2},
+        .quoteColor = {ARGB{kQuote1}, ARGB{kQuote2}, ARGB{kQuote3}},
+    });
 
     if (!baseDirectory_.empty()) body.baseDirectory(baseDirectory_);
 
     body.rsdn(message.body);
 
-    // Карточка библиотечная: у сообщения ровно тот же вид, что у карточки
-    // WinUI, и своего здесь только отступ по глубине ответа.
-    return Built<Card>{
+    // Рамка, а не библиотечная карточка: у jana сообщение обведено волосяной
+    // линией со скруглением в четыре, без тени и без подъёма, -- а тень и
+    // подъём у wxl::Card есть, и в списке из сотни сообщений подряд они
+    // превращаются в рябь. Кисти при этом наши, ресурсные: жёстко заданный
+    // светлый #E0E0E0 из jana в тёмной теме исчез бы.
+    return Border{
         hAlign.stretch,
-        Margin{indent, 4, 0, 4},
-        Padding{14, 10},
+        Margin{indent, kCardGap, 0, kCardGap},
+        Padding{kCardPaddingX, kCardPaddingY},
+        CornerRadius{kCardRadius},
+        background = brushes.cardBackgroundFillColorDefault,
+        borderBrush = brushes.cardStrokeColorDefault,
+        BorderThickness{1},
         StackPanel{head, body},
     };
 }
