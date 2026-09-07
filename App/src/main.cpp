@@ -86,11 +86,22 @@ wxl::Teardown wxl_launched() {
 
     window.appWindow().resize({kInitialWidth, kInitialHeight});
 
-    // Заставка -- ещё и задником окна. Остров XAML при быстрой растяжке
-    // отстаёт от рамки на такт-другой, и в просвете видна поверхность окна,
-    // стёртая белой кистью WinUI. wxl забирает её себе и рисует ту же
-    // картинку синхронно, с тем же кадрированием.
-    wxl::window_backdrop_image(window, (exeDirectory() / L"Assets/splash-screen.png").c_str());
+    // Задник окна -- картинка, и она же видна сквозь страницу: своей заливки
+    // у страниц нет, красят себя только полосы и карточки. Заодно это лечит
+    // просвет при быстрой растяжке: остров XAML отстаёт от рамки на
+    // такт-другой, и без задника там видна поверхность окна, стёртая белой
+    // кистью WinUI. wxl забирает её себе и рисует картинку сам,
+    // синхронно.
+    //
+    // Картинок две: заставка, пока читается витрина, и своя для чтения
+    // форума. Меняется прямо на ходу -- wxl перерисовывает задник по вызову.
+    const std::filesystem::path assets = exeDirectory() / L"Assets";
+
+    const auto showBackdrop = [window, assets](const wchar_t* name) {
+        wxl::window_backdrop_image(window, (assets / name).c_str());
+    };
+
+    showBackdrop(L"splash-screen.png");
 
     auto api = std::make_shared<forum::Api>();
 
@@ -113,8 +124,12 @@ wxl::Teardown wxl_launched() {
     // Запрос уходит с этого потока, и продолжения приходят на него же:
     // C++/WinRT возвращает корутину в апартамент, из которого её начали.
     // Поэтому внутри обработчика можно и трогать XAML, и разбирать ответ.
-    const auto loadForums = [api, splash, forums, shell] {
+    const auto loadForums = [api, splash, forums, shell, showBackdrop] {
         splash->setStatus(L"Читаю витрину форумов…");
+
+        // Заставка -- и на экране, и задником: обе картинки одна и та же, и
+        // в просвете при растяжке не видно шва.
+        showBackdrop(L"splash-screen.png");
 
         // Панели на время заставки убираются: жать «обновить» и переключать
         // вкладки, пока не прочитан первый ответ, нечего. У jana на этом
@@ -125,9 +140,12 @@ wxl::Teardown wxl_launched() {
         shell->setStatusText(L"Соединяюсь с api.rsdn.org…");
 
         api->forums()
-            .when_succeeded([forums, shell](
+            .when_succeeded([forums, shell, showBackdrop](
                                 const std::vector<forum::ForumDescription>& list) noexcept {
                 forums->show(list);
+
+                // Читаем форум -- и задник становится своим для чтения.
+                showBackdrop(L"forum.png");
 
                 shell->setBusy(false);
                 shell->setServerStatus(ServerStatus::online);
