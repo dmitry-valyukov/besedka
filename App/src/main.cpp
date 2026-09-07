@@ -34,6 +34,9 @@
 #include "stub_screens.h"
 #include "topic_screen.h"
 
+// Импорт последним, после всех обычных заголовков.
+import wxl.text;
+
 using namespace wxl;
 using namespace wxl::dsl;
 
@@ -65,9 +68,16 @@ std::wstring reasonOf(const std::exception_ptr& why) {
     try {
         std::rethrow_exception(why);
     } catch (const forum::HttpError& refused) {
-        const std::string said = refused.what();
-
-        std::wstring wide(said.begin(), said.end());
+        // Сообщение исключения -- UTF-8: и литерал из api.cpp («сервер
+        // ответил 500»), и переведённое транспортом сообщение HRESULT. Значит
+        // и переводить его надо переводом. Расширение байта до wchar_t
+        // (wstring(said.begin(), said.end())) делало из каждой кириллической
+        // буквы два знака, причём один из них -- управляющий C1, который
+        // шрифт рисует квадратиком: на заставке была видна ровно эта каша.
+        //
+        // assume_valid, а не checked: обе строки наши, и текст исключения --
+        // тот самый случай, для которого обещание без проверки и оставлено.
+        const std::wstring wide(wxl::text::assume_valid(refused.what()).to_utf16().wchars());
 
         return refused.status() == 0 ? L"Сервер недоступен: " + wide
                                      : std::wstring(L"Сервер отказал: ") + wide;
@@ -125,7 +135,7 @@ wxl::Teardown wxl_launched() {
     // C++/WinRT возвращает корутину в апартамент, из которого её начали.
     // Поэтому внутри обработчика можно и трогать XAML, и разбирать ответ.
     const auto loadForums = [api, splash, forums, shell, showBackdrop] {
-        splash->setStatus(L"Читаю витрину форумов…");
+        splash->setStatus(L"Читаю список форумов…");
 
         // Заставка -- и на экране, и задником: обе картинки одна и та же, и
         // в просвете при растяжке не видно шва.
