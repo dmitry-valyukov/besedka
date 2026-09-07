@@ -221,6 +221,16 @@ Shell::Shell() {
         foreground = brushes.textFillColorTertiary,
     };
 
+    statusBar_ = Border{
+        row = 3,
+        height = kStatusHeight,
+        background = brushes.solidBackgroundFillColorSecondary,
+        borderBrush = brushes.dividerStrokeColorDefault,
+        BorderThickness{0, 1, 0, 0},
+        Padding{8, 0},
+        status_.value(),
+    };
+
     host_ = Grid{row = 1};
 
     root_ = Grid{
@@ -230,16 +240,7 @@ Shell::Shell() {
         topBar_.value(),
         host_.value(),
         tabsBar_.value(),
-
-        Border{
-            row = 3,
-            height = kStatusHeight,
-            background = brushes.solidBackgroundFillColorSecondary,
-            borderBrush = brushes.dividerStrokeColorDefault,
-            BorderThickness{0, 1, 0, 0},
-            Padding{8, 0},
-            status_.value(),
-        },
+        statusBar_.value(),
     };
 }
 
@@ -253,6 +254,10 @@ void Shell::setChromeVisible(const bool visible) {
 
     topBar_.value().visibility(how);
     tabsBar_.value().visibility(how);
+}
+
+void Shell::setStatusVisible(const bool visible) {
+    statusBar_.value().visibility(visible ? Visibility::Visible : Visibility::Collapsed);
 }
 
 void Shell::setServerStatus(const ServerStatus status) {

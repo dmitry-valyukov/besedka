@@ -258,7 +258,13 @@ wxl::Teardown wxl_launched() {
         // Панели на время заставки убираются: жать «обновить» и переключать
         // вкладки, пока не прочитан первый ответ, нечего. У jana на этом
         // месте пустой Scaffold с одним колечком посередине.
+        //
+        // Полоса состояния уходит вместе с ними, хотя на форуме и в теме
+        // остаётся: на заставке она пересказывала бы своими словами то, что
+        // уже написано на карточке, и отрезала бы у картинки полосу снизу.
+        // Текст ей всё же говорится -- он понадобится, когда она вернётся.
         shell->setChromeVisible(false);
+        shell->setStatusVisible(false);
         shell->setContent(splash->root());
         shell->setBusy(true);
         shell->setStatusText(L"Соединяюсь с api.rsdn.org…");
@@ -280,6 +286,7 @@ wxl::Teardown wxl_launched() {
                 shell->setBusy(false);
                 shell->setServerStatus(ServerStatus::online);
                 shell->setChromeVisible(true);
+                shell->setStatusVisible(true);
                 shell->setContent(forums->root());
                 shell->setStatusText(std::format(L"Форумов на сервере: {}", list.size()));
             })
