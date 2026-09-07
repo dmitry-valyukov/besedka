@@ -10,6 +10,7 @@
 
 add_executable(Besedka WIN32
     src/main.cpp
+    src/settings.cpp
     src/shell.cpp
     src/splash_screen.cpp
     src/stub_screens.cpp
@@ -17,6 +18,7 @@ add_executable(Besedka WIN32
     src/forum_screen.cpp
     src/topic_screen.cpp
     src/message_screen.cpp
+    src/settings.h
     src/shell.h
     src/splash_screen.h
     src/stub_screens.h

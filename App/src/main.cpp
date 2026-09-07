@@ -26,16 +26,15 @@
 #include <string>
 
 #include "WindowBackdrop.h"
+#include "WindowPlacement.h"
 #include "about_dialog.h"
 #include "forum_screen.h"
 #include "message_screen.h"
+#include "settings.h"
 #include "shell.h"
 #include "splash_screen.h"
 #include "stub_screens.h"
 #include "topic_screen.h"
-
-// Импорт последним, после всех обычных заголовков.
-import wxl.text;
 
 using namespace wxl;
 using namespace wxl::dsl;
@@ -46,10 +45,14 @@ using namespace besedka::app;
 
 namespace forum = besedka::forum;
 
-// Каким окно открывается. Место окна пока не запоминается -- это следующий
-// шаг вместе с остальным хранилищем.
+// Каким окно открывается в первый раз -- дальше его ставит запомненное место.
 constexpr int32_t kInitialWidth = 1280;
 constexpr int32_t kInitialHeight = 860;
+
+// Сколько окно должно постоять смирно, прежде чем его место запишут. Тянуть
+// рамку мышью -- это сотни событий в секунду, и запись на каждое из них была бы
+// файлом, переписанным сотни раз ради одного числа.
+constexpr auto kSaveQuiet = std::chrono::milliseconds(800);
 
 /// Каталог рядом с исполняемым файлом. Путь без схемы XAML разрешает именно
 /// оттуда, и ресурсы туда же кладёт сборка.
@@ -68,19 +71,13 @@ std::wstring reasonOf(const std::exception_ptr& why) {
     try {
         std::rethrow_exception(why);
     } catch (const forum::HttpError& refused) {
-        // Сообщение исключения -- UTF-8: и литерал из api.cpp («сервер
-        // ответил 500»), и переведённое транспортом сообщение HRESULT. Значит
-        // и переводить его надо переводом. Расширение байта до wchar_t
-        // (wstring(said.begin(), said.end())) делало из каждой кириллической
-        // буквы два знака, причём один из них -- управляющий C1, который
-        // шрифт рисует квадратиком: на заставке была видна ровно эта каша.
-        //
-        // assume_valid, а не checked: обе строки наши, и текст исключения --
-        // тот самый случай, для которого обещание без проверки и оставлено.
-        const std::wstring wide(wxl::text::assume_valid(refused.what()).to_utf16().wchars());
+        // Ни проверки, ни перекодировки: текст починен там, где вошёл в
+        // программу, и досюда доехал проверенным типом. Здесь он всего лишь
+        // выходит наружу -- в обычную широкую строку, какую ждёт XAML.
+        const std::wstring_view said = refused.said().wchars();
 
-        return refused.status() == 0 ? L"Сервер недоступен: " + wide
-                                     : std::wstring(L"Сервер отказал: ") + wide;
+        return refused.status() == 0 ? std::format(L"Сервер недоступен: {}", said)
+                                     : std::format(L"Сервер отказал: {}", said);
     } catch (const std::exception&) {
         return L"Не вышло поговорить с сервером.";
     }
@@ -94,7 +91,52 @@ wxl::Teardown wxl_launched() {
         minSize = {820, 560},
     };
 
+    auto settings = std::make_shared<Settings>(loadSettings());
+
+    // Умолчание ставится всегда, и лишь потом накрывается запомненным:
+    // placement молча ничего не делает, когда разбирать нечего, -- и это
+    // правильно, но своё умолчание к тому моменту должно быть уже на месте.
     window.appWindow().resize({kInitialWidth, kInitialHeight});
+
+    if (!settings->windowPlacement.empty()) window.placement(settings->windowPlacement);
+
+    // ---- запоминание места окна ----
+    //
+    // Таймер очереди интерфейса, а не сон и не поток: каждое движение окна
+    // отодвигает запись, и пишется она один раз, когда рука отпустила рамку.
+    auto saveTimer = window.dispatcherQueue().createTimer();
+
+    saveTimer.interval(kSaveQuiet);
+    saveTimer.isRepeating(false);
+
+    const auto rememberWindow = [window, settings] {
+        // Текст непрозрачный, и приложение его не читает: wxl выдала --
+        // приложение донесло до файла. Приведение нужно потому, что строка
+        // wxl держит char16_t, а настройки -- обычную wchar_t; на Windows это
+        // один и тот же тип по размеру и по смыслу.
+        settings->windowPlacement = std::wstring(
+            reinterpret_cast<const wchar_t*>(wxl::window_placement(window).c_str()));
+
+        saveSettings(*settings);
+    };
+
+    saveTimer.add_onTick([saveTimer, rememberWindow](Object const&, Object const&) {
+        saveTimer.stop();
+        rememberWindow();
+    });
+
+    // Changed приходит и на перемещение, и на изменение размера, и на смену
+    // представления -- то есть на всё, что запоминается.
+    window.appWindow().add_onChanged([saveTimer](Object const&, AppWindowChangedEventArgs&) {
+        saveTimer.stop();
+        saveTimer.start();
+    });
+
+    // Закрытие -- последний шанс: таймер после него уже не тикнет.
+    window.add_onClosed([saveTimer, rememberWindow](Object const&, WindowEventArgs&) {
+        saveTimer.stop();
+        rememberWindow();
+    });
 
     // Задник окна -- картинка, и она же видна сквозь страницу: своей заливки
     // у страниц нет, красят себя только полосы и карточки. Заодно это лечит
