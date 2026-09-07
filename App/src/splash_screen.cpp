@@ -59,15 +59,10 @@ SplashScreen::SplashScreen() {
         width = 380,
         StackPanel{
             TextBlock{
-                L"Беседка",
+                L"Беседка RSDN",
                 fontSize = 34,
                 FontWeight{700},
                 foreground = ink(),
-            },
-            TextBlock{
-                L"Разговоры RSDN",
-                fontSize = 14,
-                foreground = dimInk(),
             },
             status_.value(),
             ring_.value(),
