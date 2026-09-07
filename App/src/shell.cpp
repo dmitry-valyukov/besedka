@@ -223,22 +223,39 @@ Shell::Shell() {
 
     host_ = Grid{row = 1};
 
+    // Картинка чтения -- самым нижним слоем каркаса, а не задником окна:
+    // задник окна виден только там, где остров XAML ещё не нарисовал, а
+    // страница без заливки показывает не его, а белый лист самого острова.
+    // Поэтому картинка кладётся в дерево, под всё остальное, и пустые места
+    // страницы её показывают. Красят себя только полосы и карточки -- то, на
+    // чём лежит текст.
+    //
+    // UniformToFill: пропорции сохраняются, лишнее срезают края окна.
+    // Растянутая по обеим осям картинка выдаёт себя сразу.
     root_ = Grid{
-        background = brushes.solidBackgroundFillColorBase,
-        rowDefinitions = L"auto,*,auto,auto",
+        Image{
+            source = L"Assets/forum.png",
+            stretch = Stretch::UniformToFill,
+            hAlign.center,
+            vAlign.center,
+        },
 
-        topBar_.value(),
-        host_.value(),
-        tabsBar_.value(),
+        Grid{
+            rowDefinitions = L"auto,*,auto,auto",
 
-        Border{
-            row = 3,
-            height = kStatusHeight,
-            background = brushes.solidBackgroundFillColorSecondary,
-            borderBrush = brushes.dividerStrokeColorDefault,
-            BorderThickness{0, 1, 0, 0},
-            Padding{8, 0},
-            status_.value(),
+            topBar_.value(),
+            host_.value(),
+            tabsBar_.value(),
+
+            Border{
+                row = 3,
+                height = kStatusHeight,
+                background = brushes.solidBackgroundFillColorSecondary,
+                borderBrush = brushes.dividerStrokeColorDefault,
+                BorderThickness{0, 1, 0, 0},
+                Padding{8, 0},
+                status_.value(),
+            },
         },
     };
 }

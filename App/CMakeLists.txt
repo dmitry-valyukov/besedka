@@ -36,15 +36,18 @@ target_link_libraries(Besedka PRIVATE
 
 besedka_consumes_wxl(Besedka)
 
-# Заставка. Путь без схемы XAML разрешает рядом с исполняемым файлом, поэтому
-# картинка едет туда -- копируется на каждой сборке, потому что правка
-# картинки не повод перелинковывать.
+# Картинки окна: заставка и задник чтения. Путь без схемы XAML разрешает
+# рядом с исполняемым файлом, поэтому обе едут туда -- копируются на каждой
+# сборке, потому что правка картинки не повод перелинковывать.
 add_custom_command(TARGET Besedka POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:Besedka>/Assets"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_SOURCE_DIR}/art/splash-screen.png"
             "$<TARGET_FILE_DIR:Besedka>/Assets/splash-screen.png"
-    COMMENT "Копирование заставки рядом с Беседкой")
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/art/forum.png"
+            "$<TARGET_FILE_DIR:Besedka>/Assets/forum.png"
+    COMMENT "Копирование картинок окна рядом с Беседкой")
 
 # Смайлы форума: токенизатор wxl.rsdn выдаёт <img src="smiles/...">, и путь
 # этот разрешается от каталога, названного baseDirectory. Картинки живут в

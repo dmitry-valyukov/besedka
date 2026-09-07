@@ -84,26 +84,34 @@ TopicScreen::TopicScreen() {
         foreground = brushes.textFillColorTertiary,
     };
 
+    // Без заливки: пустые места страницы прозрачны, и сквозь них видно
+    // картинку каркаса. Своя подложка -- только у полосы заголовка и у
+    // строк, то есть у того, на чём лежит текст.
     root_ = Grid{
         isTabStop = true,
-        background = brushes.solidBackgroundFillColorBase,
         rowDefinitions = L"auto,*",
 
-        Grid{
+        Border{
             row = 0,
-            Margin{kListPadding, 20, kListPadding, 4},
-            columnDefinitions = L"auto,*,auto",
-            columnSpacing = 12,
+            background = brushes.layerFillColorDefault,
+            borderBrush = brushes.dividerStrokeColorDefault,
+            BorderThickness{0, 0, 0, 1},
+            Padding{kListPadding, 12, kListPadding, 12},
 
-            Button{
-                column = 0,
-                vAlign.center,
-                toolTip = L"Вернуться к форумам",
-                content = FontIcon{glyph = glyph_of(kBack), fontSize = 14},
-                onClick = [this](Object const&, RoutedEventArgs&) { if (onBack) onBack(); },
+            Grid{
+                columnDefinitions = L"auto,*,auto",
+                columnSpacing = 12,
+
+                Button{
+                    column = 0,
+                    vAlign.center,
+                    toolTip = L"Вернуться к форумам",
+                    content = FontIcon{glyph = glyph_of(kBack), fontSize = 14},
+                    onClick = [this](Object const&, RoutedEventArgs&) { if (onBack) onBack(); },
+                },
+                title_.value(),
+                counter_.value(),
             },
-            title_.value(),
-            counter_.value(),
         },
 
         ScrollViewer{
