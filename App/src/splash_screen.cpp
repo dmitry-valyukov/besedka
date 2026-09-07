@@ -53,9 +53,9 @@ SplashScreen::SplashScreen() {
     };
 
     auto card = Built<OverlayCard>{
-        hAlign.right,
+        hAlign.left,
         vAlign.bottom,
-        Margin{0, 0, 24, 24},
+        Margin{24, 0, 0, 24},
         width = 380,
         StackPanel{
             TextBlock{
