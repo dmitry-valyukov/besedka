@@ -49,56 +49,62 @@ namespace forum = besedka::forum;
 constexpr int32_t kInitialWidth = 1280;
 constexpr int32_t kInitialHeight = 860;
 
-// Сколько экрана достаётся заставке. Во весь экран она читалась бы заявкой на
-// полноэкранный режим, а не приветствием, поэтому доля, а не всё.
-constexpr double kSplashShare = 0.85;
-
 // Сколько окно должно постоять смирно, прежде чем его место запишут. Тянуть
 // рамку мышью -- это сотни событий в секунду, и запись на каждое из них была бы
 // файлом, переписанным сотни раз ради одного числа.
 constexpr auto kSaveQuiet = std::chrono::milliseconds(800);
 
+/// Рамка с заголовком: насколько окно больше своей клиентской области.
+///
+/// Windows нигде не объявляет эту разницу так, чтобы её можно было спросить
+/// одним числом -- ни у AppWindow, ни у темы, ни у метрик системы (у окна
+/// WinUI своя рамка, и на разных версиях она разная). Зато у окна можно
+/// спросить обе стороны, свою и клиентскую, и вычесть.
+SizeInt32 chromeOf(const Window& window) {
+    const SizeInt32 outer = window.appWindow().size();
+    const SizeInt32 client = window.appWindow().clientSize();
+
+    return {outer.width - client.width, outer.height - client.height};
+}
+
+RectInt32 workAreaOf(const Window& window) {
+    return DisplayArea::getFromWindowId(window.appWindow().id(), DisplayAreaFallback::Nearest)
+        .workArea();
+}
+
 /// Ставит окно посреди того экрана, на котором оно сейчас, дав ему клиентскую
 /// область заданного размера.
 ///
-/// Клиентскую, а не оконную: содержимое считает по ней, а рамка и заголовок --
-/// добавка, размер которой Windows нигде не объявляет. Поэтому она измеряется:
-/// окно ставится грубо, спрашивается своя внешняя и своя клиентская сторона, и
-/// разница добавляется вторым вызовом.
+/// Клиентскую, а не оконную: содержимое считает по ней, а рамку с заголовком
+/// добавляет Windows.
 void placeCentred(const Window& window, const int clientWidth, const int clientHeight) {
-    const auto appWindow = window.appWindow();
+    const SizeInt32 chrome = chromeOf(window);
+    const SizeInt32 outer{clientWidth + chrome.width, clientHeight + chrome.height};
 
-    appWindow.resize({clientWidth, clientHeight});
+    const RectInt32 work = workAreaOf(window);
 
-    const SizeInt32 outer = appWindow.size();
-    const SizeInt32 client = appWindow.clientSize();
-
-    appWindow.resize({clientWidth + (outer.width - client.width),
-                      clientHeight + (outer.height - client.height)});
-
-    const RectInt32 work =
-        DisplayArea::getFromWindowId(appWindow.id(), DisplayAreaFallback::Nearest).workArea();
-
-    const SizeInt32 placed = appWindow.size();
-
-    appWindow.move({work.x + (work.width - placed.width) / 2,
-                    work.y + (work.height - placed.height) / 2});
+    window.appWindow().moveAndResize({work.x + (work.width - outer.width) / 2,
+                                      work.y + (work.height - outer.height) / 2, outer.width,
+                                      outer.height});
 }
 
-/// Окно под заставку: пропорции картинки, чтобы она была видна целиком, и
-/// столько экрана, сколько ей отведено.
+/// Окно под заставку: клиентская область в пропорциях картинки и настолько
+/// большая, насколько её пускает экран.
+///
+/// Считается именно клиентская: картинка живёт в ней, а не в окне, и окно
+/// пропорций картинки показало бы её кадрированной ровно на рамку.
 void shapeForSplash(const Window& window) {
-    const RectInt32 work =
-        DisplayArea::getFromWindowId(window.appWindow().id(), DisplayAreaFallback::Nearest)
-            .workArea();
+    const RectInt32 work = workAreaOf(window);
+    const SizeInt32 chrome = chromeOf(window);
 
-    // Больше своего пиксельного размера картинка не растягивается: увеличенная
-    // сверх него, она показывает не себя, а свою нерезкость.
-    double height = std::min<double>(work.height * kSplashShare, SplashScreen::imageHeight);
+    // Во всю рабочую область по высоте -- это и есть «максимально»: выше
+    // только полноэкранный режим, а он для заставки был бы заявкой не по чину.
+    double height = work.height - chrome.height;
     double width = height * SplashScreen::imageWidth / SplashScreen::imageHeight;
 
-    if (width > work.width * kSplashShare) {
-        width = work.width * kSplashShare;
+    // Картинка бывает и шире экрана -- тогда предел ставит ширина.
+    if (width > work.width - chrome.width) {
+        width = work.width - chrome.width;
         height = width * SplashScreen::imageHeight / SplashScreen::imageWidth;
     }
 
