@@ -256,11 +256,7 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
         // horizontalContentAlignment, а не hAlign: тот про саму кнопку.
         horizontalContentAlignment = HorizontalAlignment::Stretch,
         Padding{kRowPaddingX, kRowPaddingY},
-        // Подложка строки, а не прозрачность: под страницей лежит картинка,
-        // и текст без своей подложки читался бы на ней через раз. Кисть
-        // карточки полупрозрачна -- картинка сквозь строку видна, а буквы
-        // на ней стоят.
-        background = brushes.cardBackgroundFillColorDefault,
+        background = brushes.subtleFillColorTransparent,
         BorderThickness{0},
         // Имя для доступности: содержимое строки -- панель, а не строка, и
         // без этого экранный диктор скажет «кнопка» и замолчит.
