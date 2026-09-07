@@ -224,7 +224,7 @@ Shell::Shell() {
     host_ = Grid{row = 1};
 
     root_ = Grid{
-        background = brushes.solidBackgroundFillColorBase,
+
         rowDefinitions = L"auto,*,auto,auto",
 
         topBar_.value(),

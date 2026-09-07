@@ -80,7 +80,7 @@ MessageScreen::MessageScreen() {
 
     root_ = Grid{
         isTabStop = true,
-        background = brushes.solidBackgroundFillColorBase,
+
         rowDefinitions = L"auto,*",
 
         Grid{
