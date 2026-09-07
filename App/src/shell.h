@@ -53,6 +53,12 @@ public:
     /// у нас пока -- то, что стоит сказать, не заводя окна с сообщением.
     void setStatusText(std::wstring_view said);
 
+    /// Показывать ли полосу состояния. Отдельно от `setChromeVisible`, потому
+    /// что на форуме и в теме она остаётся, а на заставке -- нет: там она
+    /// повторяла бы своими словами то, что уже сказано на карточке, и заодно
+    /// отрезала бы у картинки полосу снизу.
+    void setStatusVisible(bool visible);
+
     std::function<void()> onRefresh;
     std::function<void(Tab)> onTab;
     std::function<void()> onLogin;
@@ -63,6 +69,7 @@ private:
     wxl::Nullable<wxl::Border> topBar_ = nullptr;
     wxl::Nullable<wxl::Grid> host_ = nullptr;
     wxl::Nullable<wxl::Border> tabsBar_ = nullptr;
+    wxl::Nullable<wxl::Border> statusBar_ = nullptr;
     wxl::Nullable<wxl::SelectorBar> tabs_ = nullptr;
     wxl::Nullable<wxl::TextBlock> status_ = nullptr;
     wxl::Nullable<wxl::Border> dot_ = nullptr;
