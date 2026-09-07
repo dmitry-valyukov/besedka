@@ -23,8 +23,9 @@ template <typename Read>
 auto reading(Read read) {
     return [read = std::move(read)](const Response& answer) {
         if (!answer.ok())
-            throw HttpError(answer.status,
-                            std::format("сервер ответил {}", answer.status));
+            throw HttpError(
+                answer.status,
+                wxl::text::repaired(std::format(L"сервер ответил {}", answer.status)));
 
         wxl::json::document document;
 

@@ -1,0 +1,139 @@
+#include "settings.h"
+
+#include <windows.h>
+
+#include <shlobj.h>
+
+#include <span>
+#include <string_view>
+#include <vector>
+
+// Импорты последними, после всех обычных заголовков.
+import wxl.core;
+import wxl.text;
+import wxl.xml;
+
+namespace besedka::app {
+
+namespace {
+
+/// Значение атрибута так, как его можно положить в XML.
+///
+/// `repaired`, а не обещание: сюда уходит текст, пришедший от Windows, а он не
+/// обязан быть правильным UTF-16 — непарный суррогат в нём не запрещён. Взятый
+/// на веру, он превратился бы в три байта, которых UTF-8 не знает, и при
+/// следующем запуске `wxl.xml` отвергла бы файл целиком, то есть настройки
+/// пропали бы из-за одной дурной единицы.
+std::string xmlValue(const std::wstring_view value) {
+    return wxl::text::xml_escaped(wxl::text::repaired(value).to_utf8().chars());
+}
+
+std::string readWhole(const std::filesystem::path& path) {
+    wxl::core::file in = wxl::core::file::open_read(path.c_str());
+
+    if (!in.opened()) return {};   // первого запуска ещё не было
+
+    const std::optional<std::uint64_t> size = in.size();
+
+    // Настройки — двести байт. Файл в мегабайт означает, что это не наш файл,
+    // и разбирать его незачем.
+    if (!size || *size > 64 * 1024) return {};
+
+    std::string bytes(static_cast<std::size_t>(*size), '\0');
+
+    const std::size_t got =
+        in.read({reinterpret_cast<std::byte*>(bytes.data()), bytes.size()});
+
+    bytes.resize(got);
+
+    return bytes;
+}
+
+}  // namespace
+
+std::filesystem::path dataDirectory() {
+    PWSTR folder = nullptr;
+
+    if (FAILED(::SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &folder))) return {};
+
+    std::filesystem::path path{folder};
+
+    ::CoTaskMemFree(folder);
+
+    return path / L"Besedka";
+}
+
+std::filesystem::path settingsPath() {
+    const std::filesystem::path directory = dataDirectory();
+
+    return directory.empty() ? std::filesystem::path{} : directory / L"settings.xml";
+}
+
+Settings loadSettings() {
+    Settings settings;
+
+    const std::filesystem::path path = settingsPath();
+
+    if (path.empty()) return settings;
+
+    std::string xml = readWhole(path);
+
+    if (xml.empty()) return settings;
+
+    try {
+        wxl::xml::document document;
+
+        const wxl::xml::node& root = document.load(std::move(xml));
+
+        if (const wxl::xml::node* window = root.child("window")) {
+            if (const std::optional<wxl::text::u8_view> placement = window->attribute("placement"))
+                settings.windowPlacement = std::wstring(placement->to_utf16().wchars());
+        }
+    } catch (...) {
+        return Settings{};
+    }
+
+    return settings;
+}
+
+void saveSettings(const Settings& settings) {
+    const std::filesystem::path path = settingsPath();
+
+    if (path.empty()) return;
+
+    // text_builder, а не поток: локали у него нет вовсе, и написанное не
+    // зависит от того, что стоит в Windows.
+    wxl::text::text_builder<> out;
+
+    out.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
+    out.format("<settings version=\"{}\">\n", Settings::kVersion);
+    out.format("  <window placement=\"{}\"/>\n", xmlValue(settings.windowPlacement));
+    out.append("</settings>\n");
+
+    const std::string_view content = out.view();
+
+    std::error_code failed;
+
+    std::filesystem::create_directories(path.parent_path(), failed);
+
+    const std::filesystem::path temporary = std::filesystem::path(path).concat(L".tmp");
+
+    {
+        wxl::core::file file = wxl::core::file::create(temporary.c_str());
+
+        if (!file.opened()) return;
+
+        const std::size_t written =
+            file.write({reinterpret_cast<const std::byte*>(content.data()), content.size()});
+
+        // Сброс на носитель до переименования: иначе выключение питания
+        // оставило бы имя новым, а содержимое старым или нулевым.
+        if (written != content.size() || !file.flush()) return;
+    }
+
+    // WRITE_THROUGH — чтобы и сама замена дошла до диска.
+    ::MoveFileExW(temporary.c_str(), path.c_str(),
+                  MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
+}
+
+}  // namespace besedka::app

@@ -81,48 +81,48 @@ public:
 
 private:
     void askServiceInfo() {
-        std::printf("— сервер —\n");
+        std::print("— сервер —\n");
 
         api_.serviceInfo()
             .when_succeeded([this](const forum::ServiceInfo& info) noexcept {
-                std::printf("%s, версия %s, собран %s\n\n", utf8(info.name).c_str(),
-                            utf8(info.serverVersion).c_str(), when(info.serverBuildDate).c_str());
+                std::print("{}, версия {}, собран {}\n\n", utf8(info.name),
+                           utf8(info.serverVersion), when(info.serverBuildDate));
                 askForums();
             })
             .when_failed([this](const std::exception_ptr& why) noexcept { give_up(why); });
     }
 
     void askForums() {
-        std::printf("— витрина —\n");
+        std::print("— витрина —\n");
 
         api_.forums()
             .when_succeeded([this](const std::vector<forum::ForumDescription>& forums) noexcept {
-                std::printf("форумов: %zu\n", forums.size());
+                std::print("форумов: {}\n", forums.size());
 
                 for (const forum::ForumDescription& forum : forums)
                     if (forum.isInTop)
-                        std::printf("%5d  %s %s %s\n", forum.id, padded(forum.code, 14).c_str(),
-                                    padded(forum.name, 34).c_str(), utf8(forum.group.name).c_str());
+                        std::print("{:5}  {} {} {}\n", forum.id, padded(forum.code, 14),
+                                   padded(forum.name, 34), utf8(forum.group.name));
 
-                std::printf("\n");
+                std::print("\n");
                 askTopics(forums.empty() ? 1 : forums.front().id);
             })
             .when_failed([this](const std::exception_ptr& why) noexcept { give_up(why); });
     }
 
     void askTopics(int forumId) {
-        std::printf("— темы форума %d —\n", forumId);
+        std::print("— темы форума {} —\n", forumId);
 
         api_.topics(forumId, 5)
             .when_succeeded([this](const forum::MessagePage& page) noexcept {
-                std::printf("всего тем: %d\n", page.total);
+                std::print("всего тем: {}\n", page.total);
 
                 for (const forum::Message& topic : page.items)
-                    std::printf("%9d  %s %s  ответов: %d\n", topic.info.id,
-                                when(topic.info.createdOn).c_str(),
-                                padded(topic.info.subject, 46).c_str(), topic.info.answersCount);
+                    std::print("{:9}  {} {}  ответов: {}\n", topic.info.id,
+                               when(topic.info.createdOn), padded(topic.info.subject, 46),
+                               topic.info.answersCount);
 
-                std::printf("\n");
+                std::print("\n");
 
                 if (page.items.empty()) {
                     done();
@@ -135,14 +135,14 @@ private:
     }
 
     void askMessage(int id) {
-        std::printf("— сообщение %d —\n", id);
+        std::print("— сообщение {} —\n", id);
 
         api_.message(id)
             .when_succeeded([this](const forum::Message& message) noexcept {
-                std::printf("%s, %s\n%s\n%s\n\n", utf8(message.info.subject).c_str(),
-                            utf8(message.info.author.displayName).c_str(),
-                            message.isFormatted ? "тело: серверный HTML" : "тело: разметка автора",
-                            utf8(beginning(message.body, 400)).c_str());
+                std::print("{}, {}\n{}\n{}\n\n", utf8(message.info.subject),
+                           utf8(message.info.author.displayName),
+                           message.isFormatted ? "тело: серверный HTML" : "тело: разметка автора",
+                           utf8(beginning(message.body, 400)));
                 done();
             })
             .when_failed([this](const std::exception_ptr& why) noexcept { give_up(why); });
@@ -154,9 +154,10 @@ private:
         try {
             std::rethrow_exception(why);
         } catch (const forum::HttpError& refused) {
-            std::printf("не вышло: %s (код %d)\n", refused.what(), refused.status());
+            std::print("не вышло: {} (код {})\n", refused.said().to_utf8().chars(),
+                       refused.status());
         } catch (const std::exception& broken) {
-            std::printf("не вышло: %s\n", broken.what());
+            std::print("не вышло: {}\n", broken.what());
         }
 
         done();

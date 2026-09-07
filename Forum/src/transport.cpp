@@ -19,12 +19,6 @@ using namespace winrt::Windows::Web::Http;
 
 using winrt::Windows::Foundation::Uri;
 
-/// Чужой текст -- сообщение Windows об ошибке -- под гарантию не подпадает:
-/// чинится, а не проверяется, потому что показать его надо в любом случае.
-std::string utf8(std::wstring_view text) {
-    return std::string(wxl::text::repaired(text).to_utf8().chars());
-}
-
 /// Кто мы. Сервер этого не требует, но разговаривать безымянным невежливо,
 /// а в чужих журналах имя однажды пригодится.
 constexpr std::wstring_view userAgent = L"Besedka";
@@ -58,7 +52,13 @@ winrt::fire_and_forget run(HttpClient client, HttpRequestMessage request,
     } catch (const winrt::hresult_error& broken) {
         // Разговор не состоялся вовсе: кода состояния тут нет и быть не
         // может, поэтому ноль.
-        answer.set_exception(std::make_exception_ptr(HttpError(0, utf8(broken.message()))));
+        //
+        // repaired -- дверь для чужого текста, и стоит она здесь, на входе:
+        // сообщение составила Windows, а она не обещает, что её UTF-16
+        // правильный. Ниже по программе гарантия едет уже в типе, и никто её
+        // не проверяет заново.
+        answer.set_exception(std::make_exception_ptr(
+            HttpError(0, wxl::text::repaired(broken.message()))));
     } catch (...) {
         answer.set_exception(std::current_exception());
     }

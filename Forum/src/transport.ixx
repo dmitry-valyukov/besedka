@@ -22,6 +22,7 @@ export module besedka.forum:transport;
 
 import std;
 import wxl.async;
+import wxl.text;
 
 export namespace besedka::forum {
 
@@ -44,13 +45,27 @@ struct Response {
 /// ноль, потому что кода в нём и не было.
 class HttpError : public std::runtime_error {
 public:
-    HttpError(int status, std::string_view message)
-        : std::runtime_error(std::string(message)), status_(status) {}
+    HttpError(int status, wxl::text::u16_text said)
+        : std::runtime_error(status == 0 ? "network failure"
+                                         : std::format("http status {}", status)),
+          status_(status), said_(std::move(said)) {}
 
     int status() const noexcept { return status_; }
 
+    /// Причина словами -- та, что показывают человеку.
+    ///
+    /// Проверенный текст, а не голая строка: он пришёл снаружи -- от Windows
+    /// или от сервера, -- и то, что его починили на входе, должно быть видно
+    /// в типе, а не держаться на памяти читающего.
+    ///
+    /// `what()` при этом нарочно английский и без текста снаружи («http status
+    /// 500», «network failure»): у него тогда вовсе не возникает вопроса о
+    /// кодировке, а общий обработчик и отладчик всё равно что-то видят.
+    const wxl::text::u16_text& said() const noexcept { return said_; }
+
 private:
     int status_;
+    wxl::text::u16_text said_;
 };
 
 /// Один разговорчик с сервером, живущий столько же, сколько приложение:
