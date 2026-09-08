@@ -17,8 +17,8 @@ namespace {
 // свойству, это значение, а не ссылка, так что тему для неё выбирают в
 // момент присвоения. Так же поступает и образец: у jana текст заставки
 // белый, Color.White, без оглядки на тему.
-Brush const& ink() { return brushes.textFillColorPrimary(ElementTheme::Dark); }
-Brush const& dimInk() { return brushes.textFillColorSecondary(ElementTheme::Dark); }
+Brush const& ink() { return brushes.Text.FillColor.Primary(ElementTheme::Dark); }
+Brush const& dimInk() { return brushes.Text.FillColor.Secondary(ElementTheme::Dark); }
 
 }  // namespace
 
@@ -52,7 +52,7 @@ SplashScreen::SplashScreen() {
         onClick = [this](Object const&, RoutedEventArgs&) { if (onRetry) onRetry(); },
     };
 
-    auto card = Built<OverlayCard>{
+    auto card = OverlayCard{
         hAlign.left,
         vAlign.bottom,
         Margin{24, 0, 0, 24},

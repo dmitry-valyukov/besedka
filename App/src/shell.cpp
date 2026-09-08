@@ -47,7 +47,7 @@ Button iconButton(wchar_t code, std::wstring_view hint, std::function<void()> ac
         vAlign.center,
         Padding{8, 4},
         Margin{2, 0, 2, 0},
-        background = brushes.subtleFillColorTransparent,
+        background = brushes.SubtleFillColor.Transparent,
         BorderThickness{0},
         toolTip = std::wstring(hint),
         automationName = std::wstring(hint),
@@ -72,7 +72,7 @@ Shell::Shell() {
         CornerRadius{kDotSide / 2},
         vAlign.center,
         Margin{16, 0, 0, 0},
-        background = brushes.textFillColorDisabled,
+        background = brushes.Text.FillColor.Disabled,
         toolTip = L"Сервер ещё не отвечал",
     };
 
@@ -109,15 +109,15 @@ Shell::Shell() {
         height = kPanelHeight,
         Margin{8, 0, 4, 0},
         CornerRadius{kPanelRadius},
-        background = brushes.cardBackgroundFillColorDefault,
-        borderBrush = brushes.cardStrokeColorDefault,
+        background = brushes.Card.BackgroundFillColor.Default,
+        borderBrush = brushes.Card.StrokeColorDefault,
         BorderThickness{1},
         Button{
             L"Войти",
             vAlign.center,
             Padding{14, 2},
             CornerRadius{kPanelRadius},
-            background = brushes.subtleFillColorTransparent,
+            background = brushes.SubtleFillColor.Transparent,
             BorderThickness{0},
             fontSize = 13,
             onClick = [this](Object const&, RoutedEventArgs&) { if (onLogin) onLogin(); },
@@ -126,8 +126,8 @@ Shell::Shell() {
 
     topBar_ = Border{
         row = 0,
-        background = brushes.layerFillColorDefault,
-        borderBrush = brushes.dividerStrokeColorDefault,
+        background = brushes.Layer.FillColorDefault,
+        borderBrush = brushes.DividerStrokeColorDefault,
         BorderThickness{0, 0, 0, 1},
         Padding{kBarPaddingX, kBarPaddingY},
 
@@ -144,7 +144,7 @@ Shell::Shell() {
                 FontWeight{600},
                 vAlign.center,
                 Margin{4, 0, 0, 0},
-                foreground = brushes.textFillColorPrimary,
+                foreground = brushes.Text.FillColor.Primary,
             },
             dot_.value(),
             Grid{
@@ -202,8 +202,8 @@ Shell::Shell() {
 
     tabsBar_ = Border{
         row = 2,
-        background = brushes.layerFillColorDefault,
-        borderBrush = brushes.dividerStrokeColorDefault,
+        background = brushes.Layer.FillColorDefault,
+        borderBrush = brushes.DividerStrokeColorDefault,
         BorderThickness{0, 1, 0, 0},
         Padding{4, 4},
         tabs_.value(),
@@ -218,14 +218,14 @@ Shell::Shell() {
         fontSize = kStatusSize,
         vAlign.center,
         textTrimming.characterEllipsis,
-        foreground = brushes.textFillColorTertiary,
+        foreground = brushes.Text.FillColor.Tertiary,
     };
 
     statusBar_ = Border{
         row = 3,
         height = kStatusHeight,
-        background = brushes.solidBackgroundFillColorSecondary,
-        borderBrush = brushes.dividerStrokeColorDefault,
+        background = brushes.SolidBackgroundFillColor.Secondary,
+        borderBrush = brushes.DividerStrokeColorDefault,
         BorderThickness{0, 1, 0, 0},
         Padding{8, 0},
         status_.value(),
@@ -263,17 +263,17 @@ void Shell::setStatusVisible(const bool visible) {
 void Shell::setServerStatus(const ServerStatus status) {
     switch (status) {
         case ServerStatus::online:
-            dot_.value().background(brushes.systemFillColorSuccess);
+            dot_.value().background(brushes.SystemFillColor.Success);
             dot_.value().toolTip(L"Сервер отвечает");
             break;
 
         case ServerStatus::offline:
-            dot_.value().background(brushes.systemFillColorCritical);
+            dot_.value().background(brushes.SystemFillColor.Critical);
             dot_.value().toolTip(L"Сервер не отвечает");
             break;
 
         case ServerStatus::unknown:
-            dot_.value().background(brushes.textFillColorDisabled);
+            dot_.value().background(brushes.Text.FillColor.Disabled);
             dot_.value().toolTip(L"Сервер ещё не отвечал");
             break;
     }
