@@ -79,7 +79,7 @@ AboutDialog::AboutDialog() {
     };
 }
 
-void AboutDialog::show(const Window& host) { showDialog(dialog_.value(), host); }
+void AboutDialog::show(const UIElement& host) { showDialog(dialog_.value(), host); }
 
 void AboutDialog::setServerLine(const std::wstring_view said) {
     server_.value().text(said);

@@ -1,5 +1,6 @@
 #pragma once
-// Заставка: картинка на весь экран и карточка поверх неё.
+// Заставка: одна карточка в углу окна. Картинка под ней -- задник окна, и
+// заставка о ней не знает вовсе: ставит её `main`, единственным экземпляром.
 //
 // Порт SplashWindow из jana (`ui/SplashWindow.kt`), с одной разницей: там
 // это отдельное окно, которое живёт, пока поднимается база, а здесь --
@@ -21,16 +22,6 @@ namespace besedka::app {
 
 class SplashScreen {
 public:
-    /// Размер картинки заставки в пикселях -- то, по чему окно берёт свои
-    /// пропорции, пока заставка на экране.
-    ///
-    /// Числа стоят здесь, рядом с самой картинкой, а не у окна: сменится
-    /// `art/splash-screen.png` -- сменятся и они, и искать их не придётся.
-    /// Растягивается она UniformToFill, то есть в окне других пропорций края
-    /// уезжают за рамку; в окне тех же пропорций видна вся.
-    static constexpr int imageWidth = 1254;
-    static constexpr int imageHeight = 1254;
-
     SplashScreen();
 
     /// Корень, который отдаётся окну как содержимое.
@@ -45,7 +36,7 @@ public:
     std::function<void()> onRetry;
 
 private:
-    wxl::Nullable<wxl::Grid> root_ = nullptr;
+    wxl::Nullable<wxl::OverlayCard> root_ = nullptr;
     wxl::Nullable<wxl::TextBlock> status_ = nullptr;
     wxl::Nullable<wxl::ProgressRing> ring_ = nullptr;
     wxl::Nullable<wxl::Button> retry_ = nullptr;

@@ -25,8 +25,7 @@
 #include <memory>
 #include <string>
 
-#include "WindowBackdrop.h"
-#include "WindowPlacement.h"
+#include "CompositionWindow.h"
 #include "about_dialog.h"
 #include "forum_screen.h"
 #include "message_screen.h"
@@ -49,66 +48,51 @@ namespace forum = besedka::forum;
 constexpr int32_t kInitialWidth = 1280;
 constexpr int32_t kInitialHeight = 860;
 
+// Задники окна. Их два, и они не лежат рядом, а сменяют друг друга на одном и
+// том же визуале сцены: заставка, пока читается витрина, и картинка чтения
+// дальше. Ни одна из них не повторяется в дереве XAML.
+constexpr wchar_t kSplashBackdrop[] = L"splash-screen.png";
+constexpr wchar_t kForumBackdrop[] = L"forum.png";
+
+// Размер картинки заставки -- по нему окно берёт свои пропорции, пока она на
+// экране. Растягивается она UniformToFill, то есть в окне других пропорций
+// края уезжают за рамку; в окне тех же пропорций видна вся. Сменится
+// картинка -- сменятся и эти числа.
+constexpr int kSplashImageWidth = 1254;
+constexpr int kSplashImageHeight = 1254;
+
+// Чем окно закрашено, пока картинка не доехала. Поверхности перенаправления у
+// него нет вовсе, и неокрашенным оно сквозит на рабочий стол; тон -- тёмная
+// земля обеих картинок, так что подмена не мигает.
+constexpr ARGB kEmptyBackdrop{0xFF17120Eu};
+
 // Сколько окно должно постоять смирно, прежде чем его место запишут. Тянуть
 // рамку мышью -- это сотни событий в секунду, и запись на каждое из них была бы
 // файлом, переписанным сотни раз ради одного числа.
 constexpr auto kSaveQuiet = std::chrono::milliseconds(800);
 
-/// Рамка с заголовком: насколько окно больше своей клиентской области.
-///
-/// Windows нигде не объявляет эту разницу так, чтобы её можно было спросить
-/// одним числом -- ни у AppWindow, ни у темы, ни у метрик системы (у окна
-/// WinUI своя рамка, и на разных версиях она разная). Зато у окна можно
-/// спросить обе стороны, свою и клиентскую, и вычесть.
-SizeInt32 chromeOf(const Window& window) {
-    const SizeInt32 outer = window.appWindow().size();
-    const SizeInt32 client = window.appWindow().clientSize();
-
-    return {outer.width - client.width, outer.height - client.height};
-}
-
-RectInt32 workAreaOf(const Window& window) {
-    return DisplayArea::getFromWindowId(window.appWindow().id(), DisplayAreaFallback::Nearest)
-        .workArea();
-}
-
-/// Ставит окно посреди того экрана, на котором оно сейчас, дав ему клиентскую
-/// область заданного размера.
-///
-/// Клиентскую, а не оконную: содержимое считает по ней, а рамку с заголовком
-/// добавляет Windows.
-void placeCentred(const Window& window, const int clientWidth, const int clientHeight) {
-    const SizeInt32 chrome = chromeOf(window);
-    const SizeInt32 outer{clientWidth + chrome.width, clientHeight + chrome.height};
-
-    const RectInt32 work = workAreaOf(window);
-
-    window.appWindow().moveAndResize({work.x + (work.width - outer.width) / 2,
-                                      work.y + (work.height - outer.height) / 2, outer.width,
-                                      outer.height});
-}
-
 /// Окно под заставку: клиентская область в пропорциях картинки и настолько
 /// большая, насколько её пускает экран.
 ///
 /// Считается именно клиентская: картинка живёт в ней, а не в окне, и окно
-/// пропорций картинки показало бы её кадрированной ровно на рамку.
-void shapeForSplash(const Window& window) {
-    const RectInt32 work = workAreaOf(window);
-    const SizeInt32 chrome = chromeOf(window);
+/// пропорций картинки показало бы её кадрированной ровно на рамку. Рамку
+/// вычитать не приходится: окно и спрашивают, и просят в клиентских единицах,
+/// а свою рамку оно знает само.
+void shapeForSplash(CompositionWindow& window) {
+    const SizeInt32 room = window.maxClientSize();
 
     // Во всю рабочую область по высоте -- это и есть «максимально»: выше
     // только полноэкранный режим, а он для заставки был бы заявкой не по чину.
-    double height = work.height - chrome.height;
-    double width = height * SplashScreen::imageWidth / SplashScreen::imageHeight;
+    double height = room.height;
+    double width = height * kSplashImageWidth / kSplashImageHeight;
 
     // Картинка бывает и шире экрана -- тогда предел ставит ширина.
-    if (width > work.width - chrome.width) {
-        width = work.width - chrome.width;
-        height = width * SplashScreen::imageHeight / SplashScreen::imageWidth;
+    if (width > room.width) {
+        width = room.width;
+        height = width * kSplashImageHeight / kSplashImageWidth;
     }
 
-    placeCentred(window, static_cast<int>(width), static_cast<int>(height));
+    window.centreWithClientSize({static_cast<int32_t>(width), static_cast<int32_t>(height)});
 }
 
 /// Каталог рядом с исполняемым файлом. Путь без схемы XAML разрешает именно
@@ -143,10 +127,19 @@ std::wstring reasonOf(const std::exception_ptr& why) {
 }  // namespace
 
 wxl::Teardown wxl_launched() {
-    auto window = Window{
-        title = L"Беседка",
-        minSize = {820, 560},
-    };
+    // Своё окно верхнего уровня на композиторе, а не генерируемое wxl::Window.
+    // Две причины, и обе про задник. Первая -- он тут вообще виден: XAML
+    // приходит в это окно прозрачным островом, и картинка сцены стоит ЗА
+    // страницей, а не только в просвете, который остров не успел закрасить.
+    // Пока окно было обычным, единственным способом показать картинку под
+    // содержимым была её вторая копия в дереве XAML -- та самая, которой
+    // теперь нет. Вторая -- у окна нет поверхности перенаправления
+    // (WS_EX_NOREDIRECTIONBITMAP), значит нечему и белеть при быстрой растяжке
+    // за угол.
+    //
+    // Move-only (владеет HWND и островами), поэтому в shared_ptr: его держат
+    // обработчики и Teardown.
+    auto window = std::make_shared<CompositionWindow>(L"Беседка", SizeInt32{820, 560});
 
     auto settings = std::make_shared<Settings>(loadSettings());
 
@@ -154,7 +147,7 @@ wxl::Teardown wxl_launched() {
     // рабочими. Запомненное место ждёт витрины: пока читается список форумов,
     // на экране только картинка, и растягивать её в рабочее окно, чтобы через
     // секунду сменить содержимое, значит показать два разных окна подряд.
-    shapeForSplash(window);
+    shapeForSplash(*window);
 
     // Пока место не восстановлено, ничего и не запоминается: иначе первым же
     // делом на месте окна читателя оказались бы пропорции заставки, поставленные
@@ -165,7 +158,7 @@ wxl::Teardown wxl_launched() {
     //
     // Таймер очереди интерфейса, а не сон и не поток: каждое движение окна
     // отодвигает запись, и пишется она один раз, когда рука отпустила рамку.
-    auto saveTimer = window.dispatcherQueue().createTimer();
+    auto saveTimer = window->dispatcherQueue().createTimer();
 
     saveTimer.interval(kSaveQuiet);
     saveTimer.isRepeating(false);
@@ -173,12 +166,9 @@ wxl::Teardown wxl_launched() {
     const auto rememberWindow = [window, settings, restored] {
         if (!*restored) return;
 
-        // Текст непрозрачный, и приложение его не читает: wxl выдала --
-        // приложение донесло до файла. Приведение нужно потому, что строка
-        // wxl держит char16_t, а настройки -- обычную wchar_t; на Windows это
-        // один и тот же тип по размеру и по смыслу.
-        settings->windowPlacement = std::wstring(
-            reinterpret_cast<const wchar_t*>(wxl::window_placement(window).c_str()));
+        // Текст непрозрачный, и приложение его не читает: окно выдало --
+        // приложение донесло до файла.
+        settings->windowPlacement = window->placement();
 
         saveSettings(*settings);
     };
@@ -190,9 +180,9 @@ wxl::Teardown wxl_launched() {
         if (std::exchange(*restored, true)) return;
 
         if (settings->windowPlacement.empty())
-            placeCentred(window, kInitialWidth, kInitialHeight);
+            window->centreWithClientSize({kInitialWidth, kInitialHeight});
         else
-            window.placement(settings->windowPlacement);
+            window->placement(settings->windowPlacement);
     };
 
     saveTimer.add_onTick([saveTimer, rememberWindow](Object const&, Object const&) {
@@ -200,10 +190,9 @@ wxl::Teardown wxl_launched() {
         rememberWindow();
     });
 
-    // Changed приходит и на перемещение, и на изменение размера, и на смену
+    // Приходит и на перемещение, и на изменение размера, и на смену
     // представления -- то есть на всё, что запоминается.
-    window.appWindow().add_onChanged([saveTimer, restored](Object const&,
-                                                           AppWindowChangedEventArgs&) {
+    window->onGeometryChanged([saveTimer, restored] {
         if (!*restored) return;
 
         saveTimer.stop();
@@ -211,27 +200,35 @@ wxl::Teardown wxl_launched() {
     });
 
     // Закрытие -- последний шанс: таймер после него уже не тикнет.
-    window.add_onClosed([saveTimer, rememberWindow](Object const&, WindowEventArgs&) {
+    window->onClosed([saveTimer, rememberWindow] {
         saveTimer.stop();
         rememberWindow();
     });
 
-    // Задник окна -- картинка, и она же видна сквозь страницу: своей заливки
-    // у страниц нет, красят себя только полосы и карточки. Заодно это лечит
-    // просвет при быстрой растяжке: остров XAML отстаёт от рамки на
-    // такт-другой, и без задника там видна поверхность окна, стёртая белой
-    // кистью WinUI. wxl забирает её себе и рисует картинку сам,
-    // синхронно.
+    // ---- задник ----
     //
-    // Картинок две: заставка, пока читается витрина, и своя для чтения
-    // форума. Меняется прямо на ходу -- wxl перерисовывает задник по вызову.
+    // Он один на всё приложение: единственный визуал сцены, под прозрачным
+    // островом XAML. Картинок для него две -- заставка и чтение форума, -- но
+    // лежат они не рядом, а по очереди: `background` ставит новую кисть на тот
+    // же самый визуал, вытесняя прежнюю. Ни второго визуала, ни второй копии
+    // картинки в дереве XAML нет и не будет: закрытый собою битмап -- это
+    // мегабайты, висящие в памяти и в композиции зря, и две картинки, которые
+    // надо держать в согласии руками.
+    //
+    // Загрузка асинхронная (Win2D через wxl::TextureCache): декод идёт на
+    // потоках WinRT, интерфейс не подвисает, а уже прочитанная картинка отдаётся
+    // из кэша -- возврат к заставке второй загрузки не стоит.
     const std::filesystem::path assets = exeDirectory() / L"Assets";
 
     const auto showBackdrop = [window, assets](const wchar_t* name) {
-        wxl::window_backdrop_image(window, (assets / name).c_str());
+        window->backgroundAsync(assets / name);
     };
 
-    showBackdrop(L"splash-screen.png");
+    // До первой картинки -- ровный тон: окно уже показано, а декод ещё идёт, и
+    // незакрашенное окно на этом месте сквозило бы на рабочий стол.
+    window->background(kEmptyBackdrop);
+
+    showBackdrop(kSplashBackdrop);
 
     auto api = std::make_shared<forum::Api>();
 
@@ -257,9 +254,9 @@ wxl::Teardown wxl_launched() {
     const auto loadForums = [api, splash, forums, shell, showBackdrop, restoreWindow] {
         splash->setStatus(L"Читаю список форумов…");
 
-        // Заставка -- и на экране, и задником: обе картинки одна и та же, и
-        // в просвете при растяжке не видно шва.
-        showBackdrop(L"splash-screen.png");
+        // Заставка возвращается задником: «Ещё раз» после отказа ведёт сюда
+        // же, а к тому времени на окне может стоять картинка чтения.
+        showBackdrop(kSplashBackdrop);
 
         // Панели на время заставки убираются: жать «обновить» и переключать
         // вкладки, пока не прочитан первый ответ, нечего. У jana на этом
@@ -287,7 +284,7 @@ wxl::Teardown wxl_launched() {
                 restoreWindow();
 
                 // Читаем форум -- и задник становится своим для чтения.
-                showBackdrop(L"forum.png");
+                showBackdrop(kForumBackdrop);
 
                 shell->setBusy(false);
                 shell->setServerStatus(ServerStatus::online);
@@ -327,7 +324,10 @@ wxl::Teardown wxl_launched() {
     // в приложении.
     shell->onAbout = [api, about, window] {
         about->setServerLine({});
-        about->show(window);
+        // Над содержимым окна, то есть над островом, в котором оно стоит.
+        // Спрашиваем у окна, а не капчурим каркас: тот держит этот самый
+        // обработчик, и ссылка на него отсюда замкнула бы владение в кольцо.
+        about->show(window->content());
 
         api->serviceInfo()
             .when_succeeded([about](const forum::ServiceInfo& info) noexcept {
@@ -395,8 +395,8 @@ wxl::Teardown wxl_launched() {
         shell->setStatusText({});
     };
 
-    window.content(shell->root());
-    window.activate();
+    window->content(shell->root());
+    window->activate();
 
     loadForums();
 

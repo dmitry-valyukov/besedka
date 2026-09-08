@@ -71,3 +71,20 @@ else()
         "Нет Microsoft.WindowsAppRuntime.Bootstrap.dll по пути ${_besedka_bootstrap_dll}; "
         "Беседка не запустится, пока она не окажется рядом с исполняемым файлом.")
 endif()
+
+# Win2D (Microsoft.Graphics.Canvas) активируется неупакованно, из своей нативной
+# DLL рядом с exe: ею CompositionWindow грузит картинки задника (TextureCache),
+# и без неё окно падает при создании. Путь объявляет wxl.winui.
+set(_besedka_win2d_dll
+    "${WXL_WIN2D_DIR}/runtimes/win-x64/native/Microsoft.Graphics.Canvas.dll")
+
+if(EXISTS "${_besedka_win2d_dll}")
+    add_custom_command(TARGET Besedka POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${_besedka_win2d_dll}" "$<TARGET_FILE_DIR:Besedka>"
+        COMMENT "Копирование Microsoft.Graphics.Canvas.dll (Win2D) рядом с Беседкой")
+else()
+    message(WARNING
+        "Нет Microsoft.Graphics.Canvas.dll по пути ${_besedka_win2d_dll}; "
+        "Беседка упадёт при создании окна, пока эта DLL не окажется рядом с ней.")
+endif()
