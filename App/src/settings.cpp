@@ -89,6 +89,16 @@ Settings loadSettings() {
             if (const std::optional<wxl::text::u8_view> placement = window->attribute("placement"))
                 settings.windowPlacement = std::wstring(placement->to_utf16().wchars());
         }
+
+        if (const wxl::xml::node* layout = root.child("layout")) {
+            if (const std::optional<wxl::text::u8_view> split = layout->attribute("split")) {
+                // Разбор без локали: в файле точка, что бы ни стояло в
+                // Windows. Непрочитанное число оставляет умолчание -- половину.
+                if (const std::optional<double> value =
+                        wxl::text::parse<double>(split->chars()))
+                    settings.splitFraction = *value;
+            }
+        }
     } catch (...) {
         return Settings{};
     }
@@ -108,6 +118,11 @@ void saveSettings(const Settings& settings) {
     out.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
     out.format("<settings version=\"{}\">\n", Settings::kVersion);
     out.format("  <window placement=\"{}\"/>\n", xmlValue(settings.windowPlacement));
+
+    // Три знака после точки -- доля с точностью до пикселя на любом мониторе,
+    // и без хвоста, который двоичная дробь тянет за собой.
+    out.format("  <layout split=\"{:.3f}\"/>\n", settings.splitFraction);
+
     out.append("</settings>\n");
 
     const std::string_view content = out.view();

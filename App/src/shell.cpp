@@ -1,6 +1,7 @@
 #include "shell.h"
 
 #include <cstdint>
+#include <utility>
 
 namespace besedka::app {
 
@@ -37,6 +38,42 @@ constexpr double kDotSide = 10;        // ServerStatusIndicator, уменьшё�
 constexpr double kStatusHeight = 22;   // StatusBar: 16dp текста плюс отступы
 constexpr double kPanelRadius = 20;    // UserPanel: RoundedCornerShape(24)
 constexpr double kPanelHeight = 32;    // UserPanel: height(40) без отступов
+
+// Порог двухстраничного показа -- в логических пикселях, а не в физических:
+// вопрос, на который он отвечает, это «хватает ли места на две страницы
+// текста», а текст меряется в логических. Разбор -- в docs/decisions.md.
+constexpr double kTwoPageWidth = 1200;
+
+// Граница между страницами. Шесть логических -- полоска, которую видно и в
+// которую попадают мышью, не отнимая заметной ширины ни у одной из страниц.
+constexpr double kSplitterWidth = 6;
+
+// Пределы доли: за ними у одной из страниц остаётся полоса, в которой не
+// помещается ни строка текста, ни заголовок с кнопкой возврата.
+constexpr double kSplitLower = 0.2;
+constexpr double kSplitUpper = 0.8;
+
+double clamped(double value, double lower, double upper) {
+    return value < lower ? lower : (value > upper ? upper : value);
+}
+
+/// Колонка шириной в долю. Star, а не пиксели: доли складываются в единицу, и
+/// сетка сама раздаёт им ширину, сколько бы её ни было.
+ColumnDefinition starColumn(double share) {
+    ColumnDefinition column;
+
+    column.width(GridLength{share, GridUnitType::Star});
+
+    return column;
+}
+
+ColumnDefinition pixelColumn(double width) {
+    ColumnDefinition column;
+
+    column.width(GridLength{width, GridUnitType::Pixel});
+
+    return column;
+}
 
 /// Кнопка-значок верхней панели: сама по себе прозрачная, как IconButton у
 /// Material, и обязана иметь подсказку -- значок без подписи себя не
@@ -231,7 +268,68 @@ Shell::Shell() {
         status_.value(),
     };
 
-    host_ = Grid{row = 1};
+    // ---- граница половин ----
+    //
+    // Обычный Border, а не контрол библиотеки: с тех пор как в проекции есть
+    // захват указателя, вся тяга -- это три обработчика ниже. Заведётся
+    // второе приложение, которому нужна граница, -- переедет в wxl вместе с
+    // видом и курсором; до тех пор это тридцать строк на месте, а не новая
+    // машинерия в библиотеке.
+    splitter_ = Border{
+        column = 1,
+        background = brushes.DividerStrokeColorDefault,
+        visibility = Visibility::Collapsed,
+        toolTip = L"Граница страниц: потяните, чтобы изменить ширину",
+
+        onPointerPressed =
+            [this](Object const&, PointerRoutedEventArgs& args) {
+                // Захват: без него полоска в шесть пикселей теряет мышь на
+                // первом же быстром движении, и тяга обрывается на середине.
+                // Берётся у своего же поля, а не у отправителя: полоска --
+                // часть каркаса и живёт столько же, сколько он.
+                if (!splitter_.value().capturePointer(args.pointer())) return;
+
+                dragging_ = true;
+            },
+
+        onPointerMoved =
+            [this](Object const&, PointerRoutedEventArgs& args) {
+                if (!dragging_) return;
+
+                if (width_ <= 0) return;
+
+                // Доля считается от указателя, а не складыванием сдвигов:
+                // накопленная сумма разъезжается с рукой на каждом
+                // подрезанном пределом движении.
+                splitFraction(args.getCurrentPoint(host_.value()).position().x / width_);
+
+            },
+
+        onPointerReleased =
+            [this](Object const&, PointerRoutedEventArgs& args) {
+                if (!dragging_) return;
+
+                splitter_.value().releasePointerCapture(args.pointer());
+
+                dragging_ = false;
+
+                if (onSplitChanged) onSplitChanged(fraction_);
+            },
+
+        // Захват пропадает и сам: окно потеряло активацию, касание отменили.
+        // Тяга, которая ждала бы только отпускания, осталась бы зажатой.
+        onPointerCaptureLost =
+            [this](Object const&, PointerRoutedEventArgs&) {
+                if (!std::exchange(dragging_, false)) return;
+
+                if (onSplitChanged) onSplitChanged(fraction_);
+            },
+    };
+
+    host_ = Grid{
+        row = 1,
+        splitter_.value(),
+    };
 
     root_ = Grid{
 
@@ -244,20 +342,140 @@ Shell::Shell() {
     };
 }
 
-void Shell::setContent(const UIElement& screen) {
-    host_.value().children().clear();
-    host_.value().children().append(screen);
+void Shell::showSplash(const UIElement& page) {
+    splash_ = true;
+    stack_.clear();
+    stack_.push_back({page, {}});
+
+    relayout();
 }
 
-void Shell::setChromeVisible(const bool visible) {
+void Shell::showRoot(Page page) {
+    splash_ = false;
+    stack_.clear();
+    stack_.push_back(std::move(page));
+
+    relayout();
+}
+
+void Shell::open(Page page) {
+    splash_ = false;
+    stack_.push_back(std::move(page));
+
+    relayout();
+}
+
+void Shell::back() {
+    // Нижняя страница -- верхний уровень вкладки, и снимать её некуда.
+    if (stack_.size() < 2) return;
+
+    stack_.pop_back();
+
+    relayout();
+}
+
+void Shell::splitFraction(const double value) {
+    const double wanted = clamped(value, kSplitLower, kSplitUpper);
+
+    if (wanted == fraction_) return;
+
+    fraction_ = wanted;
+
+    // Не пересобирать раскладку целиком: при тяге это было бы снятие и
+    // возвращение обеих страниц на каждое движение мыши. Меняются две
+    // ширины, дети остаются на местах.
+    const Collection<ColumnDefinition> columns = host_.value().columnDefinitions();
+
+    if (columns.size() != 3) return;
+
+    columns[0].width(GridLength{fraction_, GridUnitType::Star});
+    columns[2].width(GridLength{1 - fraction_, GridUnitType::Star});
+}
+
+bool Shell::isWide() const { return width_ > kTwoPageWidth; }
+
+void Shell::setWidth(const double logical) {
+    if (logical == width_) return;
+
+    const bool was = isWide();
+
+    width_ = logical;
+
+    // Пересборка только на смене способа показа: тянущий рамку окна шлёт
+    // новый размер на каждый пиксель, а перекладывать страницы на каждый
+    // пиксель значит снимать их с дерева и возвращать сотни раз подряд.
+    if (isWide() != was) relayout();
+}
+
+void Shell::relayout() {
+    wide_ = isWide();
+
+    // Две страницы -- когда широко И есть что показать второй. Одной страницы
+    // в стопке хватает на левую половину, а правая тогда прозрачна: сквозь
+    // неё виден задник окна, и своего она не рисует ничего.
+    const bool twoPages = wide_ && stack_.size() >= 2;
+
+    const Collection<ColumnDefinition> columns = host_.value().columnDefinitions();
+    const Collection<UIElement> children = host_.value().children();
+
+    columns.clear();
+
+    if (wide_) {
+        columns.append(starColumn(fraction_));
+        columns.append(pixelColumn(kSplitterWidth));
+        columns.append(starColumn(1 - fraction_));
+    } else {
+        columns.append(starColumn(1));
+    }
+
+    children.clear();
+
+    if (!stack_.empty()) {
+        const Page& left = twoPages ? stack_[stack_.size() - 2] : stack_.back();
+
+        Grid::setColumn(left.root.try_as<FrameworkElement>(), 0);
+        children.append(left.root);
+
+        // Слева выбирают одиночным щелчком -- это страница, по которой ходят.
+        if (left.placed) left.placed(false);
+    }
+
+    // Граница показывается только когда ей есть что делить: полоска между
+    // страницей и пустотой -- шов, за которым ничего нет.
+    splitter_.value().visibility(twoPages ? Visibility::Visible : Visibility::Collapsed);
+    children.append(splitter_.value());
+
+    if (twoPages) {
+        const Page& right = stack_.back();
+
+        Grid::setColumn(right.root.try_as<FrameworkElement>(), 2);
+        children.append(right.root);
+
+        // Справа читают, и одиночный щелчок принадлежит содержимому.
+        if (right.placed) right.placed(true);
+    }
+
+    updateChrome();
+}
+
+void Shell::updateChrome() {
+    // Заставка -- без панелей вовсе: жать «обновить» и переключать вкладки,
+    // пока не прочитан первый ответ, нечего.
+    //
+    // Дальше панели видны, пока слева стоит верхний уровень вкладки. В
+    // одностраничном показе это стопка из одной страницы; в двухстраничном
+    // слева стоит предпоследняя, значит из одной или двух.
+    const bool visible = !splash_ && stack_.size() <= (wide_ ? 2u : 1u);
+
     const Visibility how = visible ? Visibility::Visible : Visibility::Collapsed;
 
     topBar_.value().visibility(how);
     tabsBar_.value().visibility(how);
-}
 
-void Shell::setStatusVisible(const bool visible) {
-    statusBar_.value().visibility(visible ? Visibility::Visible : Visibility::Collapsed);
+    // Полоса состояния уходит только на заставке: там она повторяла бы
+    // своими словами то, что уже сказано на карточке, и отрезала бы у
+    // картинки полосу снизу.
+    statusBar_.value().visibility(splash_ ? Visibility::Collapsed : Visibility::Visible);
 }
 
 void Shell::setServerStatus(const ServerStatus status) {

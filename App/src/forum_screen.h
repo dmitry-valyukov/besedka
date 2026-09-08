@@ -32,13 +32,22 @@ public:
     /// списком и править разницу было бы дороже во всех смыслах.
     void show(const std::vector<forum::ForumDescription>& forums);
 
+    /// Страница стоит справа: выбирают в ней двойным щелчком, потому что
+    /// одиночный принадлежит её содержимому. Ставит каркас, раскладывая стопку.
+    void setSecondary(bool secondary) { secondary_ = secondary; }
+
     std::function<void(const forum::ForumDescription&)> onOpen;
 
 private:
+    bool secondary_ = false;
+
     /// Одна строка витрины. Кнопка, потому что по форуму щёлкают, а всё,
     /// что кнопка умеет сама -- наведение, нажатие, фокус, клавиатура, --
     /// достаётся даром.
     wxl::Button forumRow(const forum::ForumDescription& forum);
+
+    /// Открыть форум по идентификатору -- общее тело обоих щелчков.
+    void openById(int32_t id);
 
     wxl::Nullable<wxl::Grid> root_ = nullptr;
     wxl::Nullable<wxl::StackPanel> groups_ = nullptr;
