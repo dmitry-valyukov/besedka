@@ -241,6 +241,34 @@ wxl::Teardown wxl_launched() {
 
     messages->setBaseDirectory((exeDirectory() / L"Assets").wstring());
 
+    // ---- ширина, под которую раскладываются страницы ----
+    //
+    // Приходит от окна из WM_SIZE, то есть до того, как XAML возьмётся за
+    // вёрстку. Спрашивать её у элемента через SizeChanged нельзя: то событие
+    // приходит уже изнутри прохода вёрстки, а каркас на него снимает и
+    // возвращает страницы.
+    //
+    // Делится на масштаб прямо здесь: окно отдаёт физические пиксели, а
+    // каркасу нужны логические -- в них меряется текст, ради которого порог и
+    // существует.
+    window->onClientSizeChanged([shell](SizeInt32 client, float scale) {
+        shell->setWidth(client.width / scale);
+    });
+
+    shell->setWidth(window->clientSize().width / window->rasterizationScale());
+
+    // Граница между страницами встаёт туда, где её оставили, и запоминается
+    // тем же отложенным таймером, что и место окна: тянуть её мышью -- это
+    // сотни событий в секунду, а файл переписывается целиком.
+    shell->splitFraction(settings->splitFraction);
+
+    shell->onSplitChanged = [settings, saveTimer](const double fraction) {
+        settings->splitFraction = fraction;
+
+        saveTimer.stop();
+        saveTimer.start();
+    };
+
     // Заглушки соседних вкладок строятся один раз: они ничего не показывают,
     // и меняться им не от чего.
     const UIElement watched = watchedScreen();
@@ -266,9 +294,7 @@ wxl::Teardown wxl_launched() {
         // остаётся: на заставке она пересказывала бы своими словами то, что
         // уже написано на карточке, и отрезала бы у картинки полосу снизу.
         // Текст ей всё же говорится -- он понадобится, когда она вернётся.
-        shell->setChromeVisible(false);
-        shell->setStatusVisible(false);
-        shell->setContent(splash->root());
+        shell->showSplash(splash->root());
         shell->setBusy(true);
         shell->setStatusText(L"Соединяюсь с api.rsdn.org…");
 
@@ -288,9 +314,7 @@ wxl::Teardown wxl_launched() {
 
                 shell->setBusy(false);
                 shell->setServerStatus(ServerStatus::online);
-                shell->setChromeVisible(true);
-                shell->setStatusVisible(true);
-                shell->setContent(forums->root());
+                shell->showRoot({forums->root(), [forums](bool secondary) { forums->setSecondary(secondary); }});
                 shell->setStatusText(std::format(L"Форумов на сервере: {}", list.size()));
             })
             .when_failed([splash, shell](const std::exception_ptr& why) noexcept {
@@ -309,11 +333,13 @@ wxl::Teardown wxl_launched() {
     //
     // За двумя из трёх пока заглушки, и это то же самое, что у jana:
     // WatchedScreen и OutboxScreen там ровно такие же.
+    // Смена вкладки начинает стопку заново: вкладка -- это верхний уровень, и
+    // открытое в прежней к ней не относится.
     shell->onTab = [forums, shell, watched, outbox](const Tab chosen) {
         switch (chosen) {
-            case Tab::forums: shell->setContent(forums->root()); break;
-            case Tab::watched: shell->setContent(watched); break;
-            case Tab::outbox: shell->setContent(outbox); break;
+            case Tab::forums: shell->showRoot({forums->root(), [forums](bool secondary) { forums->setSecondary(secondary); }}); break;
+            case Tab::watched: shell->showRoot({watched, {}}); break;
+            case Tab::outbox: shell->showRoot({outbox, {}}); break;
         }
     };
 
@@ -351,10 +377,11 @@ wxl::Teardown wxl_launched() {
     forums->onOpen = [api, topics, shell](const forum::ForumDescription& forum) {
         topics->setForum(forum);
 
-        // Панели уходят: у экрана тем свой заголовок со стрелкой назад, и
-        // две полосы подряд читались бы как одна сломанная. Так же и у jana.
-        shell->setChromeVisible(false);
-        shell->setContent(topics->root());
+        // Кладётся на стопку: в одностраничном показе темы заменят витрину,
+        // в двухстраничном встанут справа от неё. Панелями каркас
+        // распоряжается сам -- они уходят, когда витрина перестаёт быть на
+        // виду слева.
+        shell->open({topics->root(), [topics](bool secondary) { topics->setSecondary(secondary); }});
         shell->setStatusText(forum.name);
 
         api->topics(forum.id, 50)
@@ -366,9 +393,8 @@ wxl::Teardown wxl_launched() {
             });
     };
 
-    topics->onBack = [forums, shell] {
-        shell->setChromeVisible(true);
-        shell->setContent(forums->root());
+    topics->onBack = [shell] {
+        shell->back();
         shell->setStatusText({});
     };
 
@@ -378,7 +404,7 @@ wxl::Teardown wxl_launched() {
     topics->onOpen = [api, messages, shell](const forum::MessageInfo& topic) {
         messages->setTopic(topic);
 
-        shell->setContent(messages->root());
+        shell->open({messages->root(), {}});
         shell->setStatusText(topic.subject);
 
         api->answers(topic.id, 200)
@@ -390,8 +416,8 @@ wxl::Teardown wxl_launched() {
             });
     };
 
-    messages->onBack = [topics, shell] {
-        shell->setContent(topics->root());
+    messages->onBack = [shell] {
+        shell->back();
         shell->setStatusText({});
     };
 

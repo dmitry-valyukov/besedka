@@ -210,17 +210,29 @@ Button TopicScreen::topicRow(const forum::MessageInfo& topic) {
         CornerRadius{4},
         automationName = std::wstring(topic.subject),
         content = StackPanel{head, line},
+        // Слева по теме щёлкают один раз, справа -- два: там одиночный щелчок
+        // принадлежит содержимому. Взаимоисключающе, потому что XAML шлёт
+        // DoubleTapped вслед за Click.
         onClick =
             [this, id](Object const&, RoutedEventArgs&) {
-                if (!onOpen) return;
-
-                const auto found = std::ranges::find_if(
-                    shown_.items,
-                    [id](const forum::Message& message) { return message.info.id == id; });
-
-                if (found != shown_.items.end()) onOpen(found->info);
+                if (!secondary_) openById(id);
+            },
+        onDoubleTapped =
+            [this, id](Object const&, DoubleTappedRoutedEventArgs&) {
+                if (secondary_) openById(id);
             },
     };
+}
+
+void TopicScreen::openById(const int32_t id) {
+    if (!onOpen) return;
+
+    // Ищется заново, а не запоминается в замыкании: список пересобирается
+    // целиком при каждом показе.
+    const auto found = std::ranges::find_if(
+        shown_.items, [id](const forum::Message& message) { return message.info.id == id; });
+
+    if (found != shown_.items.end()) onOpen(found->info);
 }
 
 }  // namespace besedka::app

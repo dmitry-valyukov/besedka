@@ -266,20 +266,36 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
             icon,
             lines,
         },
+        // Оба щелчка ведут в одно место, а выбирает между ними то, где стоит
+        // страница: слева по строке щёлкают один раз, справа -- два, потому
+        // что там одиночный принадлежит содержимому. Развести их надо именно
+        // так, взаимоисключающе: XAML шлёт DoubleTapped вслед за Click, и
+        // страница, слушающая оба разом, открыла бы форум дважды.
         onClick =
             [this, id](Object const&, RoutedEventArgs&) {
-                if (!onOpen) return;
-
-                const auto found = std::ranges::find_if(
-                    shown_, [id](const forum::ForumDescription& forum) { return forum.id == id; });
-
-                if (found != shown_.end()) onOpen(*found);
+                if (!secondary_) openById(id);
+            },
+        onDoubleTapped =
+            [this, id](Object const&, DoubleTappedRoutedEventArgs&) {
+                if (secondary_) openById(id);
             },
     };
 
     if (forum.isService) row.opacity(kServiceOpacity);
 
     return row;
+}
+
+void ForumScreen::openById(const int32_t id) {
+    if (!onOpen) return;
+
+    // Ищется заново, а не запоминается в замыкании: витрина пересобирается
+    // целиком при каждом показе, и описание, скопированное в обработчик,
+    // пережило бы тот список, из которого взято.
+    const auto found = std::ranges::find_if(
+        shown_, [id](const forum::ForumDescription& forum) { return forum.id == id; });
+
+    if (found != shown_.end()) onOpen(*found);
 }
 
 }  // namespace besedka::app

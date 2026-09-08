@@ -7,6 +7,9 @@
 #include "aliases.h"
 #include "Card.h"
 #include "generated/Members.h"
+// Точка указателя: её отдаёт PointerRoutedEventArgs::getCurrentPoint, а
+// объявлена она здесь -- без этого заголовка тип виден только по имени.
+#include "generated/Microsoft.UI.Input.h"
 #include "generated/Microsoft.UI.Xaml.Controls.h"
 #include "generated/Microsoft.UI.Xaml.Media.h"
 #include "generated/brushes.h"

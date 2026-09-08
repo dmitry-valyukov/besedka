@@ -30,11 +30,20 @@ public:
     /// экраном.
     void setError(std::wstring_view said);
 
+    /// Страница стоит справа: выбирают в ней двойным щелчком, потому что
+    /// одиночный принадлежит её содержимому. Ставит каркас, раскладывая стопку.
+    void setSecondary(bool secondary) { secondary_ = secondary; }
+
     std::function<void(const forum::MessageInfo&)> onOpen;
     std::function<void()> onBack;
 
 private:
+    bool secondary_ = false;
+
     wxl::Button topicRow(const forum::MessageInfo& topic);
+
+    /// Открыть тему по идентификатору -- общее тело обоих щелчков.
+    void openById(int32_t id);
 
     wxl::Nullable<wxl::Grid> root_ = nullptr;
     wxl::Nullable<wxl::StackPanel> topics_ = nullptr;
