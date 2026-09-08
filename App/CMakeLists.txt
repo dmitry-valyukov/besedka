@@ -38,26 +38,23 @@ target_link_libraries(Besedka PRIVATE
 
 besedka_consumes_wxl(Besedka)
 
-# Картинки окна: заставка и задник чтения. Путь без схемы XAML разрешает
-# рядом с исполняемым файлом, поэтому обе едут туда -- копируются на каждой
-# сборке, потому что правка картинки не повод перелинковывать.
-add_custom_command(TARGET Besedka POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:Besedka>/Assets"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_SOURCE_DIR}/art/splash-screen.png"
-            "$<TARGET_FILE_DIR:Besedka>/Assets/splash-screen.png"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_SOURCE_DIR}/art/forum.png"
-            "$<TARGET_FILE_DIR:Besedka>/Assets/forum.png"
-    COMMENT "Копирование картинок окна рядом с Беседкой")
-
-# Смайлы форума: токенизатор wxl.rsdn выдаёт <img src="smiles/...">, и путь
-# этот разрешается от каталога, названного baseDirectory. Картинки живут в
-# самой wxl -- у неё же лежит и таблица смайлов.
+# Всё, что приложение показывает, но не компилирует, лежит в одном каталоге --
+# src/Assets: картинки окна (заставка и задник чтения) и смайлы форума. Оттуда
+# каталог целиком едет рядом с исполняемым файлом, потому что путь без схемы
+# XAML разрешает именно оттуда, а смайлы токенизатор wxl.rsdn называет как
+# <img src="smiles/...">, разрешая их от baseDirectory.
+#
+# Один каталог, а не три источника: добавленная картинка едет с остальными,
+# ничего не дописывая сюда. Копируется на каждой сборке -- правка картинки не
+# повод перелинковывать, -- и copy_directory сам не трогает то, что не менялось.
+#
+# Смайлы -- копия набора wxl.rsdn: там же лежит и таблица кодов, по которой
+# токенизатор выбирает файл. Разойдутся -- в сообщении появится пустой квадрат
+# вместо смайла, и лечится это переносом файла оттуда сюда.
 add_custom_command(TARGET Besedka POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${BESEDKA_WXL_ROOT}/wxl.rsdn/smiles" "$<TARGET_FILE_DIR:Besedka>/Assets/smiles"
-    COMMENT "Копирование смайлов форума рядом с Беседкой")
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/Assets" "$<TARGET_FILE_DIR:Besedka>/Assets"
+    COMMENT "Копирование ресурсов рядом с Беседкой")
 
 # Загрузчик Windows App Runtime находит пакет платформы при старте, поэтому
 # его DLL обязана лежать рядом.
