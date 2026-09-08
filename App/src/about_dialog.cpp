@@ -11,8 +11,12 @@ namespace {
 /// сама, врать о нём двумя разными способами не хочется.
 constexpr wchar_t kVersion[] = L"0.1";
 
-constexpr double kCardWidth = 380;    // AboutDialog: width(420) минус поля
-constexpr double kImageHeight = 200;  // заставка сверху, а не во весь фон
+constexpr double kCardWidth = 380;  // AboutDialog: width(420) минус поля
+
+// Заставка сверху, а не во весь фон, но вдвое выше прежнего: картинка
+// квадратная, и в полосе 380x200 от неё оставалась половина. При такой высоте
+// UniformToFill срезает у неё пару десятков пикселей по бокам, и только.
+constexpr double kImageHeight = 400;
 
 }  // namespace
 
