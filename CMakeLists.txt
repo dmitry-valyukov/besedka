@@ -124,6 +124,7 @@ if(BESEDKA_BUILD_TESTS)
     include(GoogleTest)
 endif()
 
+add_subdirectory(Rsdn)
 add_subdirectory(Forum)
 
 # Само приложение -- только под Windows: оно и есть WinUI.
