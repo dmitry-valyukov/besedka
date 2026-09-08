@@ -24,7 +24,7 @@ UIElement emptyScreen(wchar_t code, std::wstring_view heading, std::wstring_view
             FontIcon{
                 glyph = std::wstring(1, code),
                 fontSize = 40,
-                foreground = brushes.textFillColorDisabled,
+                foreground = brushes.Text.FillColor.Disabled,
             },
             TextBlock{
                 std::wstring(heading),
@@ -32,7 +32,7 @@ UIElement emptyScreen(wchar_t code, std::wstring_view heading, std::wstring_view
                 FontWeight{600},
                 hAlign.center,
                 Margin{0, 12, 0, 0},
-                foreground = brushes.textFillColorSecondary,
+                foreground = brushes.Text.FillColor.Secondary,
             },
             TextBlock{
                 std::wstring(promise),
@@ -41,7 +41,7 @@ UIElement emptyScreen(wchar_t code, std::wstring_view heading, std::wstring_view
                 Margin{0, 6, 0, 0},
                 textAlignment.center,
                 textWrapping.wrap,
-                foreground = brushes.textFillColorTertiary,
+                foreground = brushes.Text.FillColor.Tertiary,
             },
         },
     };

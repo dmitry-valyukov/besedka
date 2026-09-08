@@ -71,7 +71,7 @@ TopicScreen::TopicScreen() {
         column = 1,
         fontSize = 22,
         FontWeight{600},
-        foreground = brushes.textFillColorPrimary,
+        foreground = brushes.Text.FillColor.Primary,
         vAlign.center,
         textTrimming.characterEllipsis,
     };
@@ -81,7 +81,7 @@ TopicScreen::TopicScreen() {
         fontSize = 12,
         vAlign.center,
         Margin{16, 0, 0, 0},
-        foreground = brushes.textFillColorTertiary,
+        foreground = brushes.Text.FillColor.Tertiary,
     };
 
     root_ = Grid{
@@ -129,7 +129,7 @@ void TopicScreen::setError(const std::wstring_view said) {
         fontSize = 14,
         Margin{0, 24, 0, 0},
         textWrapping.wrap,
-        foreground = brushes.systemFillColorCritical,
+        foreground = brushes.SystemFillColor.Critical,
     });
 }
 
@@ -151,7 +151,7 @@ Button TopicScreen::topicRow(const forum::MessageInfo& topic) {
         std::wstring(topic.subject),
         fontSize = kTitleSize,
         FontWeight{500},
-        foreground = brushes.textFillColorPrimary,
+        foreground = brushes.Text.FillColor.Primary,
         textWrapping.wrap,
         maxLines = 2,
         textTrimming.characterEllipsis,
@@ -168,7 +168,7 @@ Button TopicScreen::topicRow(const forum::MessageInfo& topic) {
             column = 0,
             std::wstring(topic.author.displayName),
             fontSize = kLabelSize,
-            foreground = brushes.textFillColorTertiary,
+            foreground = brushes.Text.FillColor.Tertiary,
             textTrimming.characterEllipsis,
             vAlign.center,
         },
@@ -178,7 +178,7 @@ Button TopicScreen::topicRow(const forum::MessageInfo& topic) {
             fontSize = kAnswersSide,
             vAlign.center,
             Margin{8, 0, 4, 0},
-            foreground = brushes.textFillColorTertiary,
+            foreground = brushes.Text.FillColor.Tertiary,
             toolTip = L"Ответов в теме",
         },
         TextBlock{
@@ -186,7 +186,7 @@ Button TopicScreen::topicRow(const forum::MessageInfo& topic) {
             std::format(L"{}", topic.answersCount),
             fontSize = kLabelSize,
             width = kAnswersWidth,
-            foreground = brushes.textFillColorTertiary,
+            foreground = brushes.Text.FillColor.Tertiary,
             vAlign.center,
         },
         TextBlock{
@@ -195,7 +195,7 @@ Button TopicScreen::topicRow(const forum::MessageInfo& topic) {
             fontSize = kLabelSize,
             width = kDateWidth,
             textAlignment.end,
-            foreground = brushes.textFillColorTertiary,
+            foreground = brushes.Text.FillColor.Tertiary,
             vAlign.center,
         },
     };
@@ -204,8 +204,8 @@ Button TopicScreen::topicRow(const forum::MessageInfo& topic) {
         hAlign.stretch,
         horizontalContentAlignment = HorizontalAlignment::Stretch,
         Padding{kCardPaddingX, kCardPaddingY},
-        background = brushes.cardBackgroundFillColorDefault,
-        borderBrush = brushes.cardStrokeColorDefault,
+        background = brushes.Card.BackgroundFillColor.Default,
+        borderBrush = brushes.Card.StrokeColorDefault,
         BorderThickness{1},
         CornerRadius{4},
         automationName = std::wstring(topic.subject),

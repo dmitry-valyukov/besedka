@@ -22,7 +22,7 @@ AboutDialog::AboutDialog() {
         hAlign.center,
         Margin{0, 6, 0, 0},
         visibility = Visibility::Collapsed,
-        foreground = brushes.textFillColorTertiary,
+        foreground = brushes.Text.FillColor.Tertiary,
     };
 
     dialog_ = ContentDialog{
@@ -51,13 +51,13 @@ AboutDialog::AboutDialog() {
                 FontWeight{700},
                 hAlign.center,
                 Margin{0, 16, 0, 0},
-                foreground = brushes.textFillColorPrimary,
+                foreground = brushes.Text.FillColor.Primary,
             },
             TextBlock{
                 L"Разговоры RSDN",
                 fontSize = 13,
                 hAlign.center,
-                foreground = brushes.textFillColorTertiary,
+                foreground = brushes.Text.FillColor.Tertiary,
             },
 
             HyperlinkButton{
@@ -72,7 +72,7 @@ AboutDialog::AboutDialog() {
                 std::wstring(L"v") + kVersion + L"  ·  © 2026",
                 fontSize = 11,
                 hAlign.center,
-                foreground = brushes.textFillColorTertiary,
+                foreground = brushes.Text.FillColor.Tertiary,
             },
             server_.value(),
         },

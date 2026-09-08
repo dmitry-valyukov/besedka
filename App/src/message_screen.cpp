@@ -65,7 +65,7 @@ MessageScreen::MessageScreen() {
         column = 1,
         fontSize = 18,
         FontWeight{600},
-        foreground = brushes.textFillColorPrimary,
+        foreground = brushes.Text.FillColor.Primary,
         vAlign.center,
         textTrimming.characterEllipsis,
     };
@@ -75,7 +75,7 @@ MessageScreen::MessageScreen() {
         fontSize = 12,
         vAlign.center,
         Margin{16, 0, 0, 0},
-        foreground = brushes.textFillColorTertiary,
+        foreground = brushes.Text.FillColor.Tertiary,
     };
 
     root_ = Grid{
@@ -127,7 +127,7 @@ void MessageScreen::setError(const std::wstring_view said) {
         fontSize = 14,
         Margin{0, 24, 0, 0},
         textWrapping.wrap,
-        foreground = brushes.systemFillColorCritical,
+        foreground = brushes.SystemFillColor.Critical,
     });
 }
 
@@ -164,13 +164,13 @@ UIElement MessageScreen::messageCard(const forum::Message& message, const int de
             std::wstring(message.info.author.displayName),
             fontSize = kAuthorSize,
             FontWeight{600},
-            foreground = brushes.accentTextFillColorPrimary,
+            foreground = brushes.Accent.TextFillColor.Primary,
         },
         TextBlock{
             column = 1,
             std::wstring(message.info.subject),
             fontSize = kLabelSize,
-            foreground = brushes.textFillColorTertiary,
+            foreground = brushes.Text.FillColor.Tertiary,
             textTrimming.characterEllipsis,
             vAlign.center,
         },
@@ -178,7 +178,7 @@ UIElement MessageScreen::messageCard(const forum::Message& message, const int de
             column = 2,
             dateText(message.info.createdOn),
             fontSize = kLabelSize,
-            foreground = brushes.textFillColorTertiary,
+            foreground = brushes.Text.FillColor.Tertiary,
             vAlign.center,
         },
     };
@@ -212,8 +212,8 @@ UIElement MessageScreen::messageCard(const forum::Message& message, const int de
         Margin{indent, kCardGap, 0, kCardGap},
         Padding{kCardPaddingX, kCardPaddingY},
         CornerRadius{kCardRadius},
-        background = brushes.cardBackgroundFillColorDefault,
-        borderBrush = brushes.cardStrokeColorDefault,
+        background = brushes.Card.BackgroundFillColor.Default,
+        borderBrush = brushes.Card.StrokeColorDefault,
         BorderThickness{1},
         StackPanel{head, body},
     };
