@@ -1,8 +1,11 @@
 #include "message_screen.h"
 
+#include <algorithm>
 #include <chrono>
 #include <format>
-#include <map>
+#include <vector>
+
+import besedka.app;
 
 namespace besedka::app {
 
@@ -10,12 +13,6 @@ using namespace wxl;
 using namespace wxl::dsl;
 
 namespace {
-
-// Числом, а не знаком в кавычках: знак этот из области частного
-// использования, и в исходнике на его месте стоит пустой прямоугольник.
-constexpr wchar_t kBack = 0xE72B;
-
-std::wstring glyph_of(wchar_t code) { return std::wstring(1, code); }
 
 // Числа -- из jana (ui/components/MessageComponents.kt, MessageCard) и её
 // же MessageStyle, собранного по CSS самого rsdn.org.
@@ -43,15 +40,6 @@ constexpr std::uint32_t kQuote1 = 0xFF137900;
 constexpr std::uint32_t kQuote2 = 0xFF74B967;
 constexpr std::uint32_t kQuote3 = 0xFF9FD095;
 
-std::wstring dateText(std::chrono::system_clock::time_point moment) {
-    if (moment == std::chrono::system_clock::time_point{}) return {};
-
-    const std::chrono::zoned_time local{std::chrono::current_zone(),
-                                        std::chrono::floor<std::chrono::seconds>(moment)};
-
-    return std::format(L"{:%d.%m.%Y %H:%M}", local);
-}
-
 }  // namespace
 
 MessageScreen::MessageScreen() {
@@ -62,7 +50,7 @@ MessageScreen::MessageScreen() {
     };
 
     title_ = TextBlock{
-        column = 1,
+        column = 0,
         fontSize = 18,
         FontWeight{600},
         foreground = brushes.Text.FillColor.Primary,
@@ -71,7 +59,7 @@ MessageScreen::MessageScreen() {
     };
 
     counter_ = TextBlock{
-        column = 2,
+        column = 1,
         fontSize = 12,
         vAlign.center,
         Margin{16, 0, 0, 0},
@@ -86,16 +74,9 @@ MessageScreen::MessageScreen() {
         Grid{
             row = 0,
             Margin{16, 20, 16, 4},
-            columnDefinitions = L"auto,*,auto",
+            columnDefinitions = L"*,auto",
             columnSpacing = 12,
 
-            Button{
-                column = 0,
-                vAlign.center,
-                toolTip = L"Вернуться к темам",
-                content = FontIcon{glyph = glyph_of(kBack), fontSize = 14},
-                onClick = [this](Object const&, RoutedEventArgs&) { if (onBack) onBack(); },
-            },
             title_.value(),
             counter_.value(),
         },
@@ -112,6 +93,8 @@ void MessageScreen::setBaseDirectory(const std::wstring_view directory) {
 }
 
 void MessageScreen::setTopic(const forum::MessageInfo& topic) {
+    topicId_ = topic.id;
+
     title_.value().text(topic.subject);
     counter_.value().text(L"читаю сообщения…");
 
@@ -136,23 +119,15 @@ void MessageScreen::show(const forum::MessagePage& page) {
 
     messages_.value().children().clear();
 
-    // Глубина ответа -- длина цепочки родителей внутри страницы. Сервер
-    // отдаёт сообщения в порядке появления, поэтому родитель уже посчитан к
-    // тому времени, как доходит очередь до ребёнка, и второй проход не
-    // нужен.
-    std::map<int, int> depthOf;
+    const std::vector<int> depths = replyDepths(page);
+    const std::chrono::time_zone& zone = *std::chrono::current_zone();
 
-    for (const forum::Message& message : page.items) {
-        const auto parent = depthOf.find(message.info.parentId);
-        const int depth = parent == depthOf.end() ? 0 : parent->second + 1;
-
-        depthOf.emplace(message.info.id, depth);
-
-        messages_.value().children().append(messageCard(message, depth));
-    }
+    for (std::size_t at = 0; at < page.items.size(); ++at)
+        messages_.value().children().append(messageCard(page.items[at], depths[at], zone));
 }
 
-UIElement MessageScreen::messageCard(const forum::Message& message, const int depth) {
+UIElement MessageScreen::messageCard(const forum::Message& message, const int depth,
+                                     const std::chrono::time_zone& zone) {
     const double indent = kIndentStep * std::min(depth, kMaxSteps);
 
     auto head = Grid{
@@ -176,7 +151,7 @@ UIElement MessageScreen::messageCard(const forum::Message& message, const int de
         },
         TextBlock{
             column = 2,
-            dateText(message.info.createdOn),
+            fullDate(message.info.createdOn, zone),
             fontSize = kLabelSize,
             foreground = brushes.Text.FillColor.Tertiary,
             vAlign.center,

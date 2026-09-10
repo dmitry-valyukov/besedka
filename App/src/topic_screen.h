@@ -4,9 +4,11 @@
 // Порт TopicListScreen с его TopicCard из jana: заголовок темы, под ним
 // автор, число ответов и дата. Граватара автора здесь пока нет -- в jana он
 // приезжает по сети и кешируется в базе, а у Беседки нет ещё ни того, ни
-// другого.
+// другого. Стрелки «назад» у экрана нет тоже, и это уже не порт: назад и
+// вперёд ведёт каркас, как у браузера.
 
 #include <functional>
+#include <optional>
 #include <string>
 
 #include "pch.h"
@@ -24,6 +26,10 @@ public:
     /// Чей это форум -- показывается в заголовке, пока темы ещё едут.
     void setForum(const forum::ForumDescription& forum);
 
+    /// Экран занят этим форумом: показывает его темы или ждёт их. По этому
+    /// переход «назад» и «вперёд» узнаёт, что перечитывать нечего.
+    bool shows(int forumId) const noexcept { return forumId_ == forumId; }
+
     void show(const forum::MessagePage& page);
 
     /// Беда вместо тем: причина прямо в списке, чтобы не гадать над пустым
@@ -31,16 +37,18 @@ public:
     void setError(std::wstring_view said);
 
     /// Страница стоит справа: выбирают в ней двойным щелчком, потому что
-    /// одиночный принадлежит её содержимому. Ставит каркас, раскладывая стопку.
+    /// одиночный принадлежит её содержимому. Ставит тот, кто раскладывает
+    /// страницы.
     void setSecondary(bool secondary) { secondary_ = secondary; }
 
     std::function<void(const forum::MessageInfo&)> onOpen;
-    std::function<void()> onBack;
 
 private:
     bool secondary_ = false;
 
-    wxl::Button topicRow(const forum::MessageInfo& topic);
+    wxl::Button topicRow(const forum::MessageInfo& topic,
+                         std::chrono::system_clock::time_point now,
+                         const std::chrono::time_zone& zone);
 
     /// Открыть тему по идентификатору -- общее тело обоих щелчков.
     void openById(int32_t id);
@@ -49,6 +57,9 @@ private:
     wxl::Nullable<wxl::StackPanel> topics_ = nullptr;
     wxl::Nullable<wxl::TextBlock> title_ = nullptr;
     wxl::Nullable<wxl::TextBlock> counter_ = nullptr;
+
+    /// Чей форум занял экран; пусто, пока ничей.
+    std::optional<int> forumId_;
 
     forum::MessagePage shown_;
 };
