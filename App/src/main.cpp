@@ -26,6 +26,7 @@
 #include "navigator.h"
 #include "settings_writer.h"
 #include "shell.h"
+#include "palette.h"
 
 import besedka.app;
 import besedka.forum;
@@ -53,11 +54,6 @@ constexpr wchar_t kForumBackdrop[] = L"forum.png";
 // края уезжают за рамку; в окне тех же пропорций видна вся. Сменится
 // картинка -- сменятся и эти числа.
 constexpr Extent kSplashPicture{1254, 1254};
-
-// Чем окно закрашено, пока картинка не доехала. Поверхности перенаправления у
-// него нет вовсе, и неокрашенным оно сквозит на рабочий стол; тон -- тёмная
-// земля обеих картинок, так что подмена не мигает.
-constexpr ARGB kEmptyBackdrop{0xFF17120Eu};
 
 /// Каталог рядом с исполняемым файлом. Путь без схемы XAML разрешает именно
 /// оттуда, и ресурсы туда же кладёт сборка.
@@ -147,7 +143,7 @@ Besedka::Besedka() {
     //
     // До первой картинки -- ровный тон: окно уже показано, а декод ещё идёт, и
     // незакрашенное окно на этом месте сквозило бы на рабочий стол.
-    window.background(kEmptyBackdrop);
+    window.background(palette.backdropTone);
 
     navigator.onSplash = [this] { showBackdrop(kSplashBackdrop); };
 

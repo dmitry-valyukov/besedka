@@ -75,6 +75,7 @@ add_executable(Besedka WIN32
     src/forum_screen.h
     src/topic_screen.h
     src/message_screen.h
+    src/palette.h
     src/pch.h
     src/app.manifest
 )

@@ -1,4 +1,5 @@
 #include "about_dialog.h"
+#include "palette.h"
 
 namespace besedka::app {
 
@@ -32,7 +33,7 @@ AboutDialog::AboutDialog() {
         hAlign.center,
         Margin{0, 6, 0, 0},
         visibility = Visibility::Collapsed,
-        foreground = brushes.Text.FillColor.Tertiary,
+        foreground = palette.textTertiary,
     };
 
     dialog_ = ContentDialog{
@@ -61,13 +62,13 @@ AboutDialog::AboutDialog() {
                 FontWeight{700},
                 hAlign.center,
                 Margin{0, 16, 0, 0},
-                foreground = brushes.Text.FillColor.Primary,
+                foreground = palette.text,
             },
             TextBlock{
                 L"Разговоры RSDN",
                 fontSize = 13,
                 hAlign.center,
-                foreground = brushes.Text.FillColor.Tertiary,
+                foreground = palette.textTertiary,
             },
 
             HyperlinkButton{
@@ -82,7 +83,7 @@ AboutDialog::AboutDialog() {
                 std::wstring(L"v") + kVersion + L"  ·  © 2026",
                 fontSize = 11,
                 hAlign.center,
-                foreground = brushes.Text.FillColor.Tertiary,
+                foreground = palette.textTertiary,
             },
             server_.value(),
         },

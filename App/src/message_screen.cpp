@@ -1,4 +1,5 @@
 #include "message_screen.h"
+#include "palette.h"
 
 #include <algorithm>
 #include <chrono>
@@ -33,12 +34,6 @@ constexpr double kLabelSize = 11;
 /// иначе съезжает в столбик шириной в слово.
 constexpr int kMaxSteps = 12;
 
-/// Цвета цитат по уровням -- те самые, что у RSDN в CSS и у jana в
-/// MessageStyle: от тёмно-зелёного к светлому. По ним в переписке видно не
-/// только что это цитата, но и чья.
-constexpr std::uint32_t kQuote1 = 0xFF137900;
-constexpr std::uint32_t kQuote2 = 0xFF74B967;
-constexpr std::uint32_t kQuote3 = 0xFF9FD095;
 
 }  // namespace
 
@@ -53,7 +48,7 @@ MessageScreen::MessageScreen() {
         column = 0,
         fontSize = 18,
         FontWeight{600},
-        foreground = brushes.Text.FillColor.Primary,
+        foreground = palette.text,
         vAlign.center,
         textTrimming.characterEllipsis,
     };
@@ -63,7 +58,7 @@ MessageScreen::MessageScreen() {
         fontSize = 12,
         vAlign.center,
         Margin{16, 0, 0, 0},
-        foreground = brushes.Text.FillColor.Tertiary,
+        foreground = palette.textTertiary,
     };
 
     root_ = Grid{
@@ -110,7 +105,7 @@ void MessageScreen::setError(const std::wstring_view said) {
         fontSize = 14,
         Margin{0, 24, 0, 0},
         textWrapping.wrap,
-        foreground = brushes.SystemFillColor.Critical,
+        foreground = palette.critical,
     });
 }
 
@@ -139,13 +134,13 @@ UIElement MessageScreen::messageCard(const forum::Message& message, const int de
             std::wstring(message.info.author.displayName),
             fontSize = kAuthorSize,
             FontWeight{600},
-            foreground = brushes.Accent.TextFillColor.Primary,
+            foreground = palette.accent,
         },
         TextBlock{
             column = 1,
             std::wstring(message.info.subject),
             fontSize = kLabelSize,
-            foreground = brushes.Text.FillColor.Tertiary,
+            foreground = palette.textTertiary,
             textTrimming.characterEllipsis,
             vAlign.center,
         },
@@ -153,7 +148,7 @@ UIElement MessageScreen::messageCard(const forum::Message& message, const int de
             column = 2,
             fullDate(message.info.createdOn, zone),
             fontSize = kLabelSize,
-            foreground = brushes.Text.FillColor.Tertiary,
+            foreground = palette.textTertiary,
             vAlign.center,
         },
     };
@@ -166,11 +161,10 @@ UIElement MessageScreen::messageCard(const forum::Message& message, const int de
         Margin{0, 6, 0, 0},
     };
 
-    // Вид цитат -- как на самом RSDN: три оттенка зелёного по уровням.
-    // Числа взяты из MessageStyle у jana, а туда -- из CSS сайта.
+    // Цвета цитат -- из палитры, там и сказано, откуда они.
     body.theme(HtmlTheme{
         .quoteMargin = {12, 2, 0, 2},
-        .quoteColor = {ARGB{kQuote1}, ARGB{kQuote2}, ARGB{kQuote3}},
+        .quoteColor = {palette.quote[0], palette.quote[1], palette.quote[2]},
     });
 
     if (!baseDirectory_.empty()) body.baseDirectory(baseDirectory_);
@@ -187,8 +181,8 @@ UIElement MessageScreen::messageCard(const forum::Message& message, const int de
         Margin{indent, kCardGap, 0, kCardGap},
         Padding{kCardPaddingX, kCardPaddingY},
         CornerRadius{kCardRadius},
-        background = brushes.Card.BackgroundFillColor.Default,
-        borderBrush = brushes.Card.StrokeColorDefault,
+        background = palette.messageCard,
+        borderBrush = palette.cardStroke,
         BorderThickness{1},
         StackPanel{head, body},
     };

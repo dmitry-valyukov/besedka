@@ -3,6 +3,7 @@
 #include "abi.h"
 
 #include "page_host.h"
+#include "palette.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -45,7 +46,7 @@ ColumnDefinition pixelColumn(const double width) {
 PageHost::PageHost() {
     splitter_ = Border{
         column = 1,
-        background = brushes.DividerStrokeColorDefault,
+        background = palette.divider,
         visibility = Visibility::Collapsed,
         toolTip = L"Граница страниц: потяните, чтобы изменить ширину",
         // Стрелка-растяжка, пока указатель над полоской. Ставится раз: XAML

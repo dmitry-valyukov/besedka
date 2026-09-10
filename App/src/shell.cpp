@@ -3,6 +3,7 @@
 #include <windows.h>
 
 #include "shell.h"
+#include "palette.h"
 
 #include <cstdint>
 #include <utility>
@@ -54,7 +55,7 @@ Button iconButton(wchar_t code, std::wstring_view hint, std::function<void()> ac
         vAlign.center,
         Padding{8, 4},
         Margin{2, 0, 2, 0},
-        background = brushes.SubtleFillColor.Transparent,
+        background = palette.transparent,
         BorderThickness{0},
         toolTip = std::wstring(hint),
         automationName = std::wstring(hint),
@@ -89,7 +90,7 @@ Shell::Shell() {
         CornerRadius{kDotSide / 2},
         vAlign.center,
         Margin{16, 0, 0, 0},
-        background = brushes.Text.FillColor.Disabled,
+        background = palette.textDisabled,
         toolTip = L"Сервер ещё не отвечал",
     };
 
@@ -126,15 +127,15 @@ Shell::Shell() {
         height = kPanelHeight,
         Margin{8, 0, 4, 0},
         CornerRadius{kPanelRadius},
-        background = brushes.Card.BackgroundFillColor.Default,
-        borderBrush = brushes.Card.StrokeColorDefault,
+        background = palette.card,
+        borderBrush = palette.cardStroke,
         BorderThickness{1},
         Button{
             L"Войти",
             vAlign.center,
             Padding{14, 2},
             CornerRadius{kPanelRadius},
-            background = brushes.SubtleFillColor.Transparent,
+            background = palette.transparent,
             BorderThickness{0},
             fontSize = 13,
             onClick = [this](Object const&, RoutedEventArgs&) { if (onLogin) onLogin(); },
@@ -143,8 +144,8 @@ Shell::Shell() {
 
     topBar_ = Border{
         row = 0,
-        background = brushes.Layer.FillColorDefault,
-        borderBrush = brushes.DividerStrokeColorDefault,
+        background = palette.bar,
+        borderBrush = palette.divider,
         BorderThickness{0, 0, 0, 1},
         Padding{kBarPaddingX, kBarPaddingY},
 
@@ -164,7 +165,7 @@ Shell::Shell() {
                 FontWeight{600},
                 vAlign.center,
                 Margin{8, 0, 0, 0},
-                foreground = brushes.Text.FillColor.Primary,
+                foreground = palette.text,
             },
             dot_.value(),
             Grid{
@@ -222,8 +223,8 @@ Shell::Shell() {
 
     tabsBar_ = Border{
         row = 2,
-        background = brushes.Layer.FillColorDefault,
-        borderBrush = brushes.DividerStrokeColorDefault,
+        background = palette.bar,
+        borderBrush = palette.divider,
         BorderThickness{0, 1, 0, 0},
         Padding{4, 4},
         tabs_.value(),
@@ -238,14 +239,14 @@ Shell::Shell() {
         fontSize = kStatusSize,
         vAlign.center,
         textTrimming.characterEllipsis,
-        foreground = brushes.Text.FillColor.Tertiary,
+        foreground = palette.textTertiary,
     };
 
     statusBar_ = Border{
         row = 3,
         height = kStatusHeight,
-        background = brushes.SolidBackgroundFillColor.Secondary,
-        borderBrush = brushes.DividerStrokeColorDefault,
+        background = palette.statusBar,
+        borderBrush = palette.divider,
         BorderThickness{0, 1, 0, 0},
         Padding{8, 0},
         status_.value(),
@@ -318,17 +319,17 @@ void Shell::selectTab(const Tab tab) {
 void Shell::setServerStatus(const ServerStatus status) {
     switch (status) {
         case ServerStatus::online:
-            dot_.value().background(brushes.SystemFillColor.Success);
+            dot_.value().background(palette.success);
             dot_.value().toolTip(L"Сервер отвечает");
             break;
 
         case ServerStatus::offline:
-            dot_.value().background(brushes.SystemFillColor.Critical);
+            dot_.value().background(palette.critical);
             dot_.value().toolTip(L"Сервер не отвечает");
             break;
 
         case ServerStatus::unknown:
-            dot_.value().background(brushes.Text.FillColor.Disabled);
+            dot_.value().background(palette.textDisabled);
             dot_.value().toolTip(L"Сервер ещё не отвечал");
             break;
     }
