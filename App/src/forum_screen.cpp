@@ -1,4 +1,5 @@
 #include "forum_screen.h"
+#include "palette.h"
 
 #include <algorithm>
 #include <format>
@@ -127,8 +128,8 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
         fontSize = kIconSide,
         vAlign.top,
         Margin{0, 2, kIconGap, 0},
-        foreground = primary ? Brush(brushes.Accent.TextFillColor.Primary)
-                             : Brush(brushes.Text.FillColor.Tertiary),
+        foreground = primary ? Brush(palette.accent)
+                             : Brush(palette.textTertiary),
     };
 
     auto title = TextBlock{
@@ -136,8 +137,8 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
         std::wstring(forum.name),
         fontSize = kTitleSize,
         FontWeight{static_cast<std::uint16_t>(primary ? 700 : 500)},
-        foreground = primary ? Brush(brushes.Accent.TextFillColor.Primary)
-                             : Brush(brushes.Text.FillColor.Primary),
+        foreground = primary ? Brush(palette.accent)
+                             : Brush(palette.text),
         textTrimming.characterEllipsis,
         vAlign.center,
     };
@@ -156,7 +157,7 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
         marks.children().append(FontIcon{
             glyph = glyph_of(kStar),
             fontSize = kStarSide,
-            foreground = brushes.Accent.TextFillColor.Secondary,
+            foreground = palette.accentSecondary,
             toolTip = L"Форум из первых",
         });
 
@@ -164,7 +165,7 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
         marks.children().append(FontIcon{
             glyph = glyph_of(kLock),
             fontSize = kLockSide,
-            foreground = brushes.SystemFillColor.Critical,
+            foreground = palette.critical,
             toolTip = L"Только для чтения",
         });
 
@@ -180,8 +181,8 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
             vAlign.center,
             Padding{4, 1},
             CornerRadius{4},
-            background = brushes.Layer.FillColorDefault,
-            borderBrush = brushes.Card.StrokeColorDefault,
+            background = palette.badge,
+            borderBrush = palette.cardStroke,
             BorderThickness{1},
             // Ребёнок, а не содержимое: Border несёт ровно одного, и
             // свойство у него так и называется -- child.
@@ -189,7 +190,7 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
                 wxl::text::ascii_upper(std::wstring_view(forum.code)),
                 fontSize = kLabelSize,
                 FontWeight{900},
-                foreground = brushes.Text.FillColor.Secondary,
+                foreground = palette.textSecondary,
             },
         },
     };
@@ -200,7 +201,7 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
             fontSize = kLabelSize,
             vAlign.center,
             Margin{12, 0, 0, 0},
-            foreground = brushes.Text.FillColor.Tertiary,
+            foreground = palette.textTertiary,
         });
 
     auto lines = StackPanel{
@@ -221,7 +222,7 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
             std::wstring(forum.description),
             fontSize = kBodySize,
             Margin{0, 2, 0, 0},
-            foreground = brushes.Text.FillColor.Tertiary,
+            foreground = palette.textTertiary,
             textTrimming.characterEllipsis,
         });
 
@@ -234,7 +235,7 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
         // horizontalContentAlignment, а не hAlign: тот про саму кнопку.
         horizontalContentAlignment = HorizontalAlignment::Stretch,
         Padding{kRowPaddingX, kRowPaddingY},
-        background = brushes.SubtleFillColor.Transparent,
+        background = palette.transparent,
         BorderThickness{0},
         // Имя для доступности: содержимое строки -- панель, а не строка, и
         // без этого экранный диктор скажет «кнопка» и замолчит.

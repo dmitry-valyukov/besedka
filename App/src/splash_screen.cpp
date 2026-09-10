@@ -1,32 +1,16 @@
 #include "splash_screen.h"
+#include "palette.h"
 
 namespace besedka::app {
 
 using namespace wxl;
 using namespace wxl::dsl;
 
-namespace {
-
-// Чернила на заставке -- всегда чернила тёмной темы, какая бы тема ни была у
-// окна. Экран карточки (wxl::OverlayCard) тёмный в любой теме: он для того и
-// сделан, чтобы картинка была видна сквозь него. Обычная краска текста в
-// светлой теме почти чёрная, и на этом экране надпись пропадала совсем --
-// ровно так, как это выглядело у первой Беседки.
-//
-// Форма вызова кисти с темой -- то, ради чего она есть: кисть, присвоенная
-// свойству, это значение, а не ссылка, так что тему для неё выбирают в
-// момент присвоения. Так же поступает и образец: у jana текст заставки
-// белый, Color.White, без оглядки на тему.
-Brush const& ink() { return brushes.Text.FillColor.Primary(ElementTheme::Dark); }
-Brush const& dimInk() { return brushes.Text.FillColor.Secondary(ElementTheme::Dark); }
-
-}  // namespace
-
 SplashScreen::SplashScreen() {
     status_ = TextBlock{
         L"Здравствуйте!",
         fontSize = 15,
-        foreground = dimInk(),
+        foreground = palette.splashInkDim,
         textWrapping.wrap,
         Margin{0, 10, 0, 0},
     };
@@ -41,7 +25,7 @@ SplashScreen::SplashScreen() {
         height = 28,
         hAlign.left,
         Margin{0, 16, 0, 0},
-        foreground = ink(),
+        foreground = palette.splashInk,
     };
 
     retry_ = Button{
@@ -71,7 +55,7 @@ SplashScreen::SplashScreen() {
                 L"Беседка RSDN",
                 fontSize = 34,
                 FontWeight{700},
-                foreground = ink(),
+                foreground = palette.splashInk,
             },
             status_.value(),
             ring_.value(),

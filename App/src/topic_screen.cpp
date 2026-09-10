@@ -1,4 +1,5 @@
 #include "topic_screen.h"
+#include "palette.h"
 
 #include <algorithm>
 #include <chrono>
@@ -46,7 +47,7 @@ TopicScreen::TopicScreen() {
         column = 0,
         fontSize = 22,
         FontWeight{600},
-        foreground = brushes.Text.FillColor.Primary,
+        foreground = palette.text,
         vAlign.center,
         textTrimming.characterEllipsis,
     };
@@ -56,7 +57,7 @@ TopicScreen::TopicScreen() {
         fontSize = 12,
         vAlign.center,
         Margin{16, 0, 0, 0},
-        foreground = brushes.Text.FillColor.Tertiary,
+        foreground = palette.textTertiary,
     };
 
     root_ = Grid{
@@ -99,7 +100,7 @@ void TopicScreen::setError(const std::wstring_view said) {
         fontSize = 14,
         Margin{0, 24, 0, 0},
         textWrapping.wrap,
-        foreground = brushes.SystemFillColor.Critical,
+        foreground = palette.critical,
     });
 }
 
@@ -128,7 +129,7 @@ Button TopicScreen::topicRow(const forum::MessageInfo& topic,
         std::wstring(topic.subject),
         fontSize = kTitleSize,
         FontWeight{500},
-        foreground = brushes.Text.FillColor.Primary,
+        foreground = palette.text,
         textWrapping.wrap,
         maxLines = 2,
         textTrimming.characterEllipsis,
@@ -145,7 +146,7 @@ Button TopicScreen::topicRow(const forum::MessageInfo& topic,
             column = 0,
             std::wstring(topic.author.displayName),
             fontSize = kLabelSize,
-            foreground = brushes.Text.FillColor.Tertiary,
+            foreground = palette.textTertiary,
             textTrimming.characterEllipsis,
             vAlign.center,
         },
@@ -155,7 +156,7 @@ Button TopicScreen::topicRow(const forum::MessageInfo& topic,
             fontSize = kAnswersSide,
             vAlign.center,
             Margin{8, 0, 4, 0},
-            foreground = brushes.Text.FillColor.Tertiary,
+            foreground = palette.textTertiary,
             toolTip = L"Ответов в теме",
         },
         TextBlock{
@@ -163,7 +164,7 @@ Button TopicScreen::topicRow(const forum::MessageInfo& topic,
             std::format(L"{}", topic.answersCount),
             fontSize = kLabelSize,
             width = kAnswersWidth,
-            foreground = brushes.Text.FillColor.Tertiary,
+            foreground = palette.textTertiary,
             vAlign.center,
         },
         TextBlock{
@@ -172,7 +173,7 @@ Button TopicScreen::topicRow(const forum::MessageInfo& topic,
             fontSize = kLabelSize,
             width = kDateWidth,
             textAlignment.end,
-            foreground = brushes.Text.FillColor.Tertiary,
+            foreground = palette.textTertiary,
             vAlign.center,
         },
     };
@@ -181,8 +182,8 @@ Button TopicScreen::topicRow(const forum::MessageInfo& topic,
         hAlign.stretch,
         horizontalContentAlignment = HorizontalAlignment::Stretch,
         Padding{kCardPaddingX, kCardPaddingY},
-        background = brushes.Card.BackgroundFillColor.Default,
-        borderBrush = brushes.Card.StrokeColorDefault,
+        background = palette.card,
+        borderBrush = palette.cardStroke,
         BorderThickness{1},
         CornerRadius{4},
         automationName = std::wstring(topic.subject),
