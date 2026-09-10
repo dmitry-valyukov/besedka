@@ -60,6 +60,14 @@ TopicScreen::TopicScreen() {
         foreground = palette.textTertiary,
     };
 
+    list_.emplace(topics_.value());
+
+    list_->onZoomChanged = [this](const double factor) {
+        if (onZoomChanged) onZoomChanged(factor);
+    };
+
+    Grid::setRow(list_->root(), 1);
+
     root_ = Grid{
         isTabStop = true,
 
@@ -75,12 +83,11 @@ TopicScreen::TopicScreen() {
             counter_.value(),
         },
 
-        ScrollViewer{
-            row = 1,
-            content = topics_.value(),
-        },
+        list_->root(),
     };
 }
+
+void TopicScreen::setZoom(const double factor) { list_->zoom(factor); }
 
 void TopicScreen::setForum(const forum::ForumDescription& forum) {
     forumId_ = forum.id;

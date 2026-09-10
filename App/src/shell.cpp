@@ -69,6 +69,15 @@ Button iconButton(wchar_t code, std::wstring_view hint, std::function<void()> ac
 /// Windows в .cpp можно.
 bool altHeld() { return (::GetKeyState(VK_MENU) & 0x8000) != 0; }
 
+bool ctrlHeld() { return (::GetKeyState(VK_CONTROL) & 0x8000) != 0; }
+
+/// Плюс и минус основной клавиатуры. В VirtualKey их нет -- это OEM-клавиши,
+/// и знак на них зависит от раскладки, -- поэтому по кодам Windows. Плюс
+/// сидит на одной клавише со знаком равенства, и Ctrl+= тоже увеличивает,
+/// как в браузере.
+bool isPlusKey(const VirtualKey key) { return static_cast<int>(key) == VK_OEM_PLUS; }
+bool isMinusKey(const VirtualKey key) { return static_cast<int>(key) == VK_OEM_MINUS; }
+
 }  // namespace
 
 Shell::Shell() {
@@ -258,16 +267,23 @@ Shell::Shell() {
         rowDefinitions = L"auto,*,auto,auto",
 
         // Клавиши браузера: «назад»/«вперёд» на клавиатуре и Alt со
-        // стрелками. Событие поднимается сюда от того, у кого фокус, -- то
-        // есть с любой страницы.
+        // стрелками, Ctrl с плюсом, минусом и нулём -- масштаб. Событие
+        // поднимается сюда от того, у кого фокус, -- то есть с любой страницы.
         onKeyDown =
             [this](Object const&, KeyRoutedEventArgs& args) {
                 const VirtualKey key = args.key();
+                const bool ctrl = ctrlHeld();
 
                 if (key == VirtualKey::GoBack || (key == VirtualKey::Left && altHeld())) {
                     if (onBack) onBack();
                 } else if (key == VirtualKey::GoForward || (key == VirtualKey::Right && altHeld())) {
                     if (onForward) onForward();
+                } else if (ctrl && (key == VirtualKey::Add || isPlusKey(key))) {
+                    if (onZoomIn) onZoomIn();
+                } else if (ctrl && (key == VirtualKey::Subtract || isMinusKey(key))) {
+                    if (onZoomOut) onZoomOut();
+                } else if (ctrl && (key == VirtualKey::Number0 || key == VirtualKey::NumberPad0)) {
+                    if (onZoomReset) onZoomReset();
                 } else {
                     return;
                 }

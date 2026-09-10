@@ -61,6 +61,14 @@ MessageScreen::MessageScreen() {
         foreground = palette.textTertiary,
     };
 
+    list_.emplace(messages_.value());
+
+    list_->onZoomChanged = [this](const double factor) {
+        if (onZoomChanged) onZoomChanged(factor);
+    };
+
+    Grid::setRow(list_->root(), 1);
+
     root_ = Grid{
         isTabStop = true,
 
@@ -76,12 +84,11 @@ MessageScreen::MessageScreen() {
             counter_.value(),
         },
 
-        ScrollViewer{
-            row = 1,
-            content = messages_.value(),
-        },
+        list_->root(),
     };
 }
+
+void MessageScreen::setZoom(const double factor) { list_->zoom(factor); }
 
 void MessageScreen::setBaseDirectory(const std::wstring_view directory) {
     baseDirectory_ = directory;

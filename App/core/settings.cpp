@@ -71,6 +71,13 @@ Settings parseSettings(std::string xml) {
                     settings.splitFraction = *value;
             }
         }
+
+        if (const wxl::xml::node* view = root.child("view")) {
+            if (const std::optional<wxl::text::u8_view> zoom = view->attribute("zoom")) {
+                if (const std::optional<double> value = wxl::text::parse<double>(zoom->chars()))
+                    settings.zoom = *value;
+            }
+        }
     } catch (...) {
         return Settings{};
     }
@@ -90,6 +97,7 @@ std::string formatSettings(const Settings& settings) {
     // Три знака после точки -- доля с точностью до пикселя на любом мониторе,
     // и без хвоста, который двоичная дробь тянет за собой.
     out.format("  <layout split=\"{:.3f}\"/>\n", settings.splitFraction);
+    out.format("  <view zoom=\"{:.3f}\"/>\n", settings.zoom);
 
     out.append("</settings>\n");
 

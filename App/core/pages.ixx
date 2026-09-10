@@ -65,4 +65,24 @@ inline constexpr double kSplitUpper = 0.8;
 /// Доля, приведённая к пределам.
 double clampedSplit(double fraction) noexcept;
 
+// ---- масштаб ----
+//
+// Ступени -- как у браузера: лестница, по которой ходят вверх и вниз и с
+// которой всегда возвращаются ровно на единицу. Умножение на шаг уползало бы
+// в 1,1^n и никогда не попадало обратно в 100 %.
+
+inline constexpr double kZoomSteps[] = {0.5, 0.67, 0.75, 0.8, 0.9, 1.0, 1.1,
+                                        1.25, 1.5, 1.75, 2.0, 2.5, 3.0};
+inline constexpr double kZoomDefault = 1.0;
+
+/// Следующая ступень вверх; с верхней -- она же. Масштаб между ступенями
+/// (после щипка) идёт на ближайшую ступень выше.
+double zoomedIn(double zoom) noexcept;
+
+/// Следующая ступень вниз; с нижней -- она же.
+double zoomedOut(double zoom) noexcept;
+
+/// Масштаб в пределах лестницы.
+double clampedZoom(double zoom) noexcept;
+
 }  // namespace besedka::app

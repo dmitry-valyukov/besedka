@@ -139,6 +139,15 @@ Besedka::Besedka() {
         settings.scheduleSave();
     };
 
+    // Масштаб из настроек -- до подписки: восстановленное записывать незачем,
+    // а место окна в тот момент ещё заставочное.
+    navigator.setZoom(settings.settings().zoom);
+
+    navigator.onZoomChanged = [this](const double zoom) {
+        settings.settings().zoom = zoom;
+        settings.scheduleSave();
+    };
+
     // ---- задник ----
     //
     // До первой картинки -- ровный тон: окно уже показано, а декод ещё идёт, и

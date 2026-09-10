@@ -46,4 +46,33 @@ double clampedSplit(const double fraction) noexcept {
     return fraction < kSplitLower ? kSplitLower : (fraction > kSplitUpper ? kSplitUpper : fraction);
 }
 
+namespace {
+
+// Масштаб приходит из float у ScrollViewer: 1,1 там -- это 1,10000002, и
+// «строго больше» без допуска пошло бы на ступень выше самой себя.
+constexpr double kZoomTolerance = 1e-3;
+
+}  // namespace
+
+double zoomedIn(const double zoom) noexcept {
+    for (const double step : kZoomSteps)
+        if (step > zoom + kZoomTolerance) return step;
+
+    return std::end(kZoomSteps)[-1];
+}
+
+double zoomedOut(const double zoom) noexcept {
+    for (auto step = std::rbegin(kZoomSteps); step != std::rend(kZoomSteps); ++step)
+        if (*step < zoom - kZoomTolerance) return *step;
+
+    return kZoomSteps[0];
+}
+
+double clampedZoom(const double zoom) noexcept {
+    const double lowest = kZoomSteps[0];
+    const double highest = std::end(kZoomSteps)[-1];
+
+    return zoom < lowest ? lowest : (zoom > highest ? highest : zoom);
+}
+
 }  // namespace besedka::app

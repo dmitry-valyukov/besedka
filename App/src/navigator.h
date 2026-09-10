@@ -67,6 +67,14 @@ public:
     void splitFraction(double value);
     std::function<void(double)> onSplitChanged;
 
+    /// Масштаб списков и сообщений, один на все экраны: ступенями с клавиш
+    /// (см. zoomedIn в besedka.app) или любым числом от щипка.
+    void zoomIn();
+    void zoomOut();
+    void zoomReset();
+    void setZoom(double factor);
+    std::function<void(double)> onZoomChanged;
+
     /// «О программе» над содержимым окна. Версию сервера спрашивает при
     /// каждом показе: диалог открывают редко, а запрос этот дешевле любого
     /// другого.
@@ -102,6 +110,7 @@ private:
 
     History history_;
     double width_ = 0;
+    double zoom_ = kZoomDefault;
 
     PageHost host_;
 

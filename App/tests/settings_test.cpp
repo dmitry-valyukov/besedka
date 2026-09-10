@@ -21,11 +21,19 @@ TEST(settings, what_is_written_is_what_is_read) {
 
     written.windowPlacement = L"2,3,-1,-1,-1,-1,100,100,1380,960";
     written.splitFraction = 0.375;
+    written.zoom = 1.25;
 
     const Settings read = parseSettings(formatSettings(written));
 
     EXPECT_EQ(read.windowPlacement, written.windowPlacement);
     EXPECT_DOUBLE_EQ(read.splitFraction, written.splitFraction);
+    EXPECT_DOUBLE_EQ(read.zoom, written.zoom);
+}
+
+TEST(settings, zoom_defaults_to_one_and_survives_a_missing_or_unreadable_value) {
+    EXPECT_DOUBLE_EQ(parseSettings("").zoom, 1.0);
+    EXPECT_DOUBLE_EQ(parseSettings("<settings version=\"1\"><layout split=\"0.5\"/></settings>").zoom, 1.0);
+    EXPECT_DOUBLE_EQ(parseSettings("<settings version=\"1\"><view zoom=\"big\"/></settings>").zoom, 1.0);
 }
 
 TEST(settings, the_fraction_is_written_with_a_dot_and_three_digits) {

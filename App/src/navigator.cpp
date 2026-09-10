@@ -1,6 +1,7 @@
 #include "navigator.h"
 
 #include <chrono>
+#include <cmath>
 #include <format>
 #include <span>
 #include <utility>
@@ -53,6 +54,39 @@ Navigator::Navigator(forum::Api& api, Shell& shell, const std::filesystem::path&
     shell_.onForward = [this] { forward(); };
     shell_.onRefresh = [this] { reload(); };
     shell_.onTab = [this](const Tab tab) { navigate(rootOf(tab)); };
+
+    shell_.onZoomIn = [this] { zoomIn(); };
+    shell_.onZoomOut = [this] { zoomOut(); };
+    shell_.onZoomReset = [this] { zoomReset(); };
+
+    // Щипок на одном экране -- масштаб для всех: он один на приложение.
+    const auto pinched = [this](const double factor) { setZoom(factor); };
+
+    forums_.onZoomChanged = pinched;
+    topics_.onZoomChanged = pinched;
+    messages_.onZoomChanged = pinched;
+}
+
+void Navigator::zoomIn() { setZoom(zoomedIn(zoom_)); }
+
+void Navigator::zoomOut() { setZoom(zoomedOut(zoom_)); }
+
+void Navigator::zoomReset() { setZoom(kZoomDefault); }
+
+void Navigator::setZoom(const double factor) {
+    const double wanted = clampedZoom(factor);
+
+    if (wanted == zoom_) return;
+
+    zoom_ = wanted;
+
+    forums_.setZoom(wanted);
+    topics_.setZoom(wanted);
+    messages_.setZoom(wanted);
+
+    shell_.setStatusText(std::format(L"Масштаб {}%", std::lround(wanted * 100)));
+
+    if (onZoomChanged) onZoomChanged(wanted);
 }
 
 void Navigator::start() { loadShowcase(); }

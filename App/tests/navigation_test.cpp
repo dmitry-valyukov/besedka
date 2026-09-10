@@ -296,3 +296,33 @@ TEST(pages, the_split_stays_within_its_limits) {
     EXPECT_DOUBLE_EQ(clampedSplit(1.0), kSplitUpper);
     EXPECT_DOUBLE_EQ(clampedSplit(kSplitUpper), kSplitUpper);
 }
+
+// ---- масштаб ----
+
+TEST(zoom, steps_go_up_and_down_the_ladder_and_come_back_to_one) {
+    EXPECT_DOUBLE_EQ(zoomedIn(1.0), 1.1);
+    EXPECT_DOUBLE_EQ(zoomedIn(1.1), 1.25);
+    EXPECT_DOUBLE_EQ(zoomedOut(1.0), 0.9);
+    EXPECT_DOUBLE_EQ(zoomedOut(zoomedIn(1.0)), 1.0);
+    EXPECT_DOUBLE_EQ(zoomedIn(zoomedOut(1.0)), 1.0);
+}
+
+TEST(zoom, the_ends_of_the_ladder_hold) {
+    EXPECT_DOUBLE_EQ(zoomedIn(3.0), 3.0);
+    EXPECT_DOUBLE_EQ(zoomedOut(0.5), 0.5);
+    EXPECT_DOUBLE_EQ(clampedZoom(10.0), 3.0);
+    EXPECT_DOUBLE_EQ(clampedZoom(0.1), 0.5);
+    EXPECT_DOUBLE_EQ(clampedZoom(1.5), 1.5);
+}
+
+TEST(zoom, a_value_between_steps_goes_to_the_nearest_step_in_that_direction) {
+    // После щипка масштаб может быть любым; клавиша ведёт на ступень.
+    EXPECT_DOUBLE_EQ(zoomedIn(1.3), 1.5);
+    EXPECT_DOUBLE_EQ(zoomedOut(1.3), 1.25);
+}
+
+TEST(zoom, a_float_from_the_scroll_viewer_is_not_a_step_above_itself) {
+    // 1,1f -- это 1,10000002 в double; следующая ступень -- 1,25, а не 1,1.
+    EXPECT_DOUBLE_EQ(zoomedIn(static_cast<double>(1.1f)), 1.25);
+    EXPECT_DOUBLE_EQ(zoomedOut(static_cast<double>(0.9f)), 0.8);
+}
