@@ -48,6 +48,9 @@ PageHost::PageHost() {
         background = brushes.DividerStrokeColorDefault,
         visibility = Visibility::Collapsed,
         toolTip = L"Граница страниц: потяните, чтобы изменить ширину",
+        // Стрелка-растяжка, пока указатель над полоской. Ставится раз: XAML
+        // сам показывает курсор элемента, ловить вход и выход не нужно.
+        cursor = InputSystemCursorShape::SizeWestEast,
 
         onPointerPressed =
             [this](Object const&, PointerRoutedEventArgs& args) {
