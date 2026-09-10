@@ -57,8 +57,10 @@ struct Palette {
     /// Карточка-строка списка и панель пользователя.
     static constexpr auto card = wxl::dsl::brushes.Card.BackgroundFillColor.Default;
 
-    /// Карточка сообщения: непрозрачная. Читают её, а не картинку под ней.
-    static constexpr auto messageCard = wxl::dsl::brushes.SolidBackgroundFillColor.Tertiary;
+    /// Карточка сообщения: непрозрачная -- читают её, а не картинку под ней, --
+    /// и чисто-белая в светлой теме (#FFFFFF; в тёмной #2C2C2C). Tertiary
+    /// рядом -- #F9F9F9, и на белой странице это заметный серый.
+    static constexpr auto messageCard = wxl::dsl::brushes.SolidBackgroundFillColor.Quarternary;
 
     static constexpr auto cardStroke = wxl::dsl::brushes.Card.StrokeColorDefault;
 
