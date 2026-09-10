@@ -4,6 +4,7 @@
 #include <format>
 
 // Импорт последним, после всех обычных заголовков.
+import besedka.app;
 import wxl.text;
 
 namespace besedka::app {
@@ -88,35 +89,12 @@ void ForumScreen::show(const std::vector<forum::ForumDescription>& forums) {
 
     groups_.value().children().clear();
 
-    // Группы в том порядке, который назначил им сервер: sortOrder для того и
-    // прислан. Внутри группы порядок оставлен как есть -- сервер отдаёт
-    // форумы по возрастанию идентификатора, то есть в порядке появления, и
-    // старожилы форума знают их в этом порядке.
-    std::vector<const forum::ForumGroup*> order;
-
-    for (const forum::ForumDescription& forum : shown_) {
-        const auto known = std::ranges::find_if(order, [&forum](const forum::ForumGroup* group) {
-            return group->id == forum.group.id;
-        });
-
-        if (known == order.end()) order.push_back(&forum.group);
-    }
-
-    std::ranges::stable_sort(order, [](const forum::ForumGroup* left, const forum::ForumGroup* right) {
-        return left->sortOrder < right->sortOrder;
-    });
-
-    for (const forum::ForumGroup* group : order) {
+    // Кто в какой группе и в каком порядке группы, посчитано заранее и
+    // проверено тестом; здесь только строки.
+    for (const ShowcaseGroup& group : groupShowcase(shown_)) {
         auto inside = StackPanel{hAlign.stretch, Margin{0, 4, 0, 8}};
 
-        int count = 0;
-
-        for (const forum::ForumDescription& forum : shown_) {
-            if (forum.group.id != group->id) continue;
-
-            inside.children().append(forumRow(forum));
-            ++count;
-        }
+        for (const std::size_t at : group.forums) inside.children().append(forumRow(shown_[at]));
 
         groups_.value().children().append(Expander{
             hAlign.stretch,
@@ -130,7 +108,7 @@ void ForumScreen::show(const std::vector<forum::ForumDescription>& forums) {
             // строкой: заголовок Expander -- это Object, и блок даёт заодно
             // управление кеглем.
             header = TextBlock{
-                std::format(L"{}    ({})", group->name, count),
+                std::format(L"{}    ({})", group.group.name, group.forums.size()),
                 fontSize = kGroupSize,
                 FontWeight{500},
             },

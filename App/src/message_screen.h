@@ -8,10 +8,13 @@
 // префиксам, смайлы картинками, код с подсветкой. См. docs/decisions.md.
 //
 // Дерево ответов показано отступом, а не узлами с раскрытием: у сообщения
-// есть parentID, и глубина -- это длина цепочки родителей внутри страницы.
-// Отступ читается сразу и не требует ни одного щелчка.
+// есть parentID, и глубина -- это длина цепочки родителей внутри страницы
+// (replyDepths из besedka.app). Отступ читается сразу и не требует ни одного
+// щелчка.
+//
+// Стрелки «назад» у экрана нет: назад и вперёд ведёт каркас, как у браузера.
 
-#include <functional>
+#include <optional>
 #include <string>
 
 #include "pch.h"
@@ -29,6 +32,10 @@ public:
     /// Какая тема открыта -- показывается, пока сообщения ещё едут.
     void setTopic(const forum::MessageInfo& topic);
 
+    /// Экран занят этой темой: показывает её сообщения или ждёт их. По этому
+    /// переход «назад» и «вперёд» узнаёт, что перечитывать нечего.
+    bool shows(int topicId) const noexcept { return topicId_ == topicId; }
+
     void show(const forum::MessagePage& page);
 
     void setError(std::wstring_view said);
@@ -37,15 +44,17 @@ public:
     /// `smiles/`.
     void setBaseDirectory(std::wstring_view directory);
 
-    std::function<void()> onBack;
-
 private:
-    wxl::UIElement messageCard(const forum::Message& message, int depth);
+    wxl::UIElement messageCard(const forum::Message& message, int depth,
+                               const std::chrono::time_zone& zone);
 
     wxl::Nullable<wxl::Grid> root_ = nullptr;
     wxl::Nullable<wxl::StackPanel> messages_ = nullptr;
     wxl::Nullable<wxl::TextBlock> title_ = nullptr;
     wxl::Nullable<wxl::TextBlock> counter_ = nullptr;
+
+    /// Чья тема заняла экран; пусто, пока ничья.
+    std::optional<int> topicId_;
 
     std::wstring baseDirectory_;
 };

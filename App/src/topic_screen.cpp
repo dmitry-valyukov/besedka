@@ -4,6 +4,8 @@
 #include <chrono>
 #include <format>
 
+import besedka.app;
+
 namespace besedka::app {
 
 using namespace wxl;
@@ -13,7 +15,6 @@ namespace {
 
 // Числом, а не знаком в кавычках: знак этот из области частного
 // использования, и в исходнике на его месте стоит пустой прямоугольник.
-constexpr wchar_t kBack = 0xE72B;      // назад
 constexpr wchar_t kAnswers = 0xE8BD;   // ответов
 
 std::wstring glyph_of(wchar_t code) { return std::wstring(1, code); }
@@ -32,32 +33,6 @@ constexpr double kAnswersSide = 12;    // TopicCard: ic_chat size
 constexpr double kAnswersWidth = 24;   // TopicCard: фиксированная ширина числа
 constexpr double kDateWidth = 80;      // TopicCard: фиксированная ширина даты
 
-/// Дата так, как её читают: время сервера в UTC, а человек живёт в своём
-/// поясе. Перевод делает current_zone() -- база часовых поясов у Windows
-/// своя и обновляется вместе с ней.
-///
-/// Подробность зависит от давности, как в jana (ui/utils/DateUtils.kt):
-/// сегодняшнее сообщение -- одно время, этого года -- день с месяцем,
-/// прошлогоднее -- одна дата. Число, повторяющее сегодняшнее у каждой из
-/// полусотни строк, ничего не говорит; час говорит.
-std::wstring dateText(std::chrono::system_clock::time_point moment) {
-    using namespace std::chrono;
-
-    if (moment == system_clock::time_point{}) return {};
-
-    const zoned_time local{current_zone(), floor<seconds>(moment)};
-    const zoned_time now{current_zone(), floor<seconds>(system_clock::now())};
-
-    const year_month_day then{floor<days>(local.get_local_time())};
-    const year_month_day today{floor<days>(now.get_local_time())};
-
-    if (then == today) return std::format(L"{:%H:%M}", local);
-
-    if (then.year() == today.year()) return std::format(L"{:%d.%m %H:%M}", local);
-
-    return std::format(L"{:%d.%m.%y}", local);
-}
-
 }  // namespace
 
 TopicScreen::TopicScreen() {
@@ -68,7 +43,7 @@ TopicScreen::TopicScreen() {
     };
 
     title_ = TextBlock{
-        column = 1,
+        column = 0,
         fontSize = 22,
         FontWeight{600},
         foreground = brushes.Text.FillColor.Primary,
@@ -77,7 +52,7 @@ TopicScreen::TopicScreen() {
     };
 
     counter_ = TextBlock{
-        column = 2,
+        column = 1,
         fontSize = 12,
         vAlign.center,
         Margin{16, 0, 0, 0},
@@ -92,16 +67,9 @@ TopicScreen::TopicScreen() {
         Grid{
             row = 0,
             Margin{kListPadding, 20, kListPadding, 4},
-            columnDefinitions = L"auto,*,auto",
+            columnDefinitions = L"*,auto",
             columnSpacing = 12,
 
-            Button{
-                column = 0,
-                vAlign.center,
-                toolTip = L"Вернуться к форумам",
-                content = FontIcon{glyph = glyph_of(kBack), fontSize = 14},
-                onClick = [this](Object const&, RoutedEventArgs&) { if (onBack) onBack(); },
-            },
             title_.value(),
             counter_.value(),
         },
@@ -114,6 +82,8 @@ TopicScreen::TopicScreen() {
 }
 
 void TopicScreen::setForum(const forum::ForumDescription& forum) {
+    forumId_ = forum.id;
+
     title_.value().text(forum.name);
     counter_.value().text(L"читаю темы…");
 
@@ -140,11 +110,18 @@ void TopicScreen::show(const forum::MessagePage& page) {
 
     topics_.value().children().clear();
 
+    // «Сейчас» и пояс -- один раз на список, а не на строку: полусотне строк
+    // незачем спрашивать часы полсотни раз.
+    const auto now = std::chrono::system_clock::now();
+    const std::chrono::time_zone& zone = *std::chrono::current_zone();
+
     for (const forum::Message& topic : shown_.items)
-        topics_.value().children().append(topicRow(topic.info));
+        topics_.value().children().append(topicRow(topic.info, now, zone));
 }
 
-Button TopicScreen::topicRow(const forum::MessageInfo& topic) {
+Button TopicScreen::topicRow(const forum::MessageInfo& topic,
+                             const std::chrono::system_clock::time_point now,
+                             const std::chrono::time_zone& zone) {
     const int id = topic.id;
 
     auto head = TextBlock{
@@ -191,7 +168,7 @@ Button TopicScreen::topicRow(const forum::MessageInfo& topic) {
         },
         TextBlock{
             column = 3,
-            dateText(topic.createdOn),
+            relativeDate(topic.createdOn, now, zone),
             fontSize = kLabelSize,
             width = kDateWidth,
             textAlignment.end,

@@ -1,14 +1,12 @@
-#include "settings.h"
+module;
 
 #include <windows.h>
 
 #include <shlobj.h>
 
-#include <span>
-#include <string_view>
-#include <vector>
+module besedka.app;
 
-// Импорты последними, после всех обычных заголовков.
+import std;
 import wxl.core;
 import wxl.text;
 import wxl.xml;
@@ -20,9 +18,9 @@ namespace {
 /// Значение атрибута так, как его можно положить в XML.
 ///
 /// `repaired`, а не обещание: сюда уходит текст, пришедший от Windows, а он не
-/// обязан быть правильным UTF-16 — непарный суррогат в нём не запрещён. Взятый
-/// на веру, он превратился бы в три байта, которых UTF-8 не знает, и при
-/// следующем запуске `wxl.xml` отвергла бы файл целиком, то есть настройки
+/// обязан быть правильным UTF-16 -- непарный суррогат в нём не запрещён.
+/// Взятый на веру, он превратился бы в три байта, которых UTF-8 не знает, и
+/// при следующем запуске wxl::xml отвергла бы файл целиком, то есть настройки
 /// пропали бы из-за одной дурной единицы.
 std::string xmlValue(const std::wstring_view value) {
     return wxl::text::xml_escaped(wxl::text::repaired(value).to_utf8().chars());
@@ -35,14 +33,13 @@ std::string readWhole(const std::filesystem::path& path) {
 
     const std::optional<std::uint64_t> size = in.size();
 
-    // Настройки — двести байт. Файл в мегабайт означает, что это не наш файл,
+    // Настройки -- двести байт. Файл в мегабайт означает, что это не наш файл,
     // и разбирать его незачем.
     if (!size || *size > 64 * 1024) return {};
 
     std::string bytes(static_cast<std::size_t>(*size), '\0');
 
-    const std::size_t got =
-        in.read({reinterpret_cast<std::byte*>(bytes.data()), bytes.size()});
+    const std::size_t got = in.read({reinterpret_cast<std::byte*>(bytes.data()), bytes.size()});
 
     bytes.resize(got);
 
@@ -50,6 +47,54 @@ std::string readWhole(const std::filesystem::path& path) {
 }
 
 }  // namespace
+
+Settings parseSettings(std::string xml) {
+    Settings settings;
+
+    if (xml.empty()) return settings;
+
+    try {
+        wxl::xml::document document;
+
+        const wxl::xml::node& root = document.load(std::move(xml));
+
+        if (const wxl::xml::node* window = root.child("window")) {
+            if (const std::optional<wxl::text::u8_view> placement = window->attribute("placement"))
+                settings.windowPlacement = std::wstring(placement->to_utf16().wchars());
+        }
+
+        if (const wxl::xml::node* layout = root.child("layout")) {
+            if (const std::optional<wxl::text::u8_view> split = layout->attribute("split")) {
+                // Разбор без локали: в файле точка, что бы ни стояло в
+                // Windows. Непрочитанное число оставляет умолчание -- половину.
+                if (const std::optional<double> value = wxl::text::parse<double>(split->chars()))
+                    settings.splitFraction = *value;
+            }
+        }
+    } catch (...) {
+        return Settings{};
+    }
+
+    return settings;
+}
+
+std::string formatSettings(const Settings& settings) {
+    // text_builder, а не поток: локали у него нет вовсе, и написанное не
+    // зависит от того, что стоит в Windows.
+    wxl::text::text_builder<> out;
+
+    out.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
+    out.format("<settings version=\"{}\">\n", Settings::kVersion);
+    out.format("  <window placement=\"{}\"/>\n", xmlValue(settings.windowPlacement));
+
+    // Три знака после точки -- доля с точностью до пикселя на любом мониторе,
+    // и без хвоста, который двоичная дробь тянет за собой.
+    out.format("  <layout split=\"{:.3f}\"/>\n", settings.splitFraction);
+
+    out.append("</settings>\n");
+
+    return std::string(out.view());
+}
 
 std::filesystem::path dataDirectory() {
     PWSTR folder = nullptr;
@@ -70,40 +115,11 @@ std::filesystem::path settingsPath() {
 }
 
 Settings loadSettings() {
-    Settings settings;
-
     const std::filesystem::path path = settingsPath();
 
-    if (path.empty()) return settings;
+    if (path.empty()) return Settings{};
 
-    std::string xml = readWhole(path);
-
-    if (xml.empty()) return settings;
-
-    try {
-        wxl::xml::document document;
-
-        const wxl::xml::node& root = document.load(std::move(xml));
-
-        if (const wxl::xml::node* window = root.child("window")) {
-            if (const std::optional<wxl::text::u8_view> placement = window->attribute("placement"))
-                settings.windowPlacement = std::wstring(placement->to_utf16().wchars());
-        }
-
-        if (const wxl::xml::node* layout = root.child("layout")) {
-            if (const std::optional<wxl::text::u8_view> split = layout->attribute("split")) {
-                // Разбор без локали: в файле точка, что бы ни стояло в
-                // Windows. Непрочитанное число оставляет умолчание -- половину.
-                if (const std::optional<double> value =
-                        wxl::text::parse<double>(split->chars()))
-                    settings.splitFraction = *value;
-            }
-        }
-    } catch (...) {
-        return Settings{};
-    }
-
-    return settings;
+    return parseSettings(readWhole(path));
 }
 
 void saveSettings(const Settings& settings) {
@@ -111,21 +127,7 @@ void saveSettings(const Settings& settings) {
 
     if (path.empty()) return;
 
-    // text_builder, а не поток: локали у него нет вовсе, и написанное не
-    // зависит от того, что стоит в Windows.
-    wxl::text::text_builder<> out;
-
-    out.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
-    out.format("<settings version=\"{}\">\n", Settings::kVersion);
-    out.format("  <window placement=\"{}\"/>\n", xmlValue(settings.windowPlacement));
-
-    // Три знака после точки -- доля с точностью до пикселя на любом мониторе,
-    // и без хвоста, который двоичная дробь тянет за собой.
-    out.format("  <layout split=\"{:.3f}\"/>\n", settings.splitFraction);
-
-    out.append("</settings>\n");
-
-    const std::string_view content = out.view();
+    const std::string content = formatSettings(settings);
 
     std::error_code failed;
 
@@ -146,9 +148,8 @@ void saveSettings(const Settings& settings) {
         if (written != content.size() || !file.flush()) return;
     }
 
-    // WRITE_THROUGH — чтобы и сама замена дошла до диска.
-    ::MoveFileExW(temporary.c_str(), path.c_str(),
-                  MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
+    // WRITE_THROUGH -- чтобы и сама замена дошла до диска.
+    ::MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
 }
 
 }  // namespace besedka::app

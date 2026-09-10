@@ -1,25 +1,74 @@
-# App -- сама Беседка на wxl.winui.
+# App -- сама Беседка на wxl.winui, в двух частях.
 #
-# Линкуется с wxl::winui и besedka::forum: интерфейс и сервер, и больше
-# ничего. Доступ к декларативной поверхности не должен стоить приложению
-# разбора проекции cppwinrt, и отсутствие её include-пути здесь -- то, что
-# это гарантирует.
+# core/ -- модуль besedka.app: то, что приложение решает без окон -- маршруты,
+# история переходов, план страниц, настройки, даты, группировка списков. Ни
+# XAML, ни сети; отсюда тесты в tests/.
+#
+# src/ -- исполняемый файл: окно, каркас, экраны и переходы между ними. Он
+# линкуется с wxl::winui, besedka::forum и besedka::app, и больше ничем.
+# Доступ к декларативной поверхности не должен стоить приложению разбора
+# проекции cppwinrt, и отсутствие её include-пути здесь -- то, что это
+# гарантирует.
 #
 # WIN32 делает исполняемый файл оконным, а оконным его точкой входа
 # становится wWinMain, который живёт в самой wxl.
 
+# ---- besedka.app: приложение без окон ----
+
+wxl_add_module_library(besedka.app STATIC
+    PUBLIC
+        core/app.ixx
+
+        core/route.ixx
+        core/history.ixx
+        core/pages.ixx
+        core/settings.ixx
+        core/format.ixx
+        core/lists.ixx
+        core/geometry.ixx
+    SRC
+        core/route.cpp
+        core/history.cpp
+        core/pages.cpp
+        core/settings.cpp
+        core/format.cpp
+        core/lists.cpp
+        core/geometry.cpp
+)
+
+add_library(besedka::app ALIAS besedka.app)
+
+# PUBLIC: модель форума стоит в интерфейсе (маршрут несёт форум и тему,
+# списки принимают страницу сообщений), а с ней приезжают wxl::text и
+# wxl::core. wxl::xml -- только настройкам, но модуль один, и его читатель
+# XML линкуется вместе с остальным.
+target_link_libraries(besedka.app PUBLIC
+    besedka::forum
+    wxl::text
+    wxl::xml
+)
+
+# Каталог данных спрашивается у оболочки (SHGetKnownFolderPath).
+target_link_libraries(besedka.app PRIVATE shell32)
+
+# ---- Besedka: окно, каркас, экраны ----
+
 add_executable(Besedka WIN32
     src/main.cpp
-    src/settings.cpp
+    src/navigator.cpp
+    src/settings_writer.cpp
     src/shell.cpp
+    src/page_host.cpp
     src/splash_screen.cpp
     src/stub_screens.cpp
     src/about_dialog.cpp
     src/forum_screen.cpp
     src/topic_screen.cpp
     src/message_screen.cpp
-    src/settings.h
+    src/navigator.h
+    src/settings_writer.h
     src/shell.h
+    src/page_host.h
     src/splash_screen.h
     src/stub_screens.h
     src/about_dialog.h
@@ -34,6 +83,7 @@ target_link_libraries(Besedka PRIVATE
     wxl::winui
     wxl::text
     besedka::forum
+    besedka::app
 )
 
 besedka_consumes_wxl(Besedka)
@@ -87,4 +137,8 @@ else()
     message(WARNING
         "Нет Microsoft.Graphics.Canvas.dll по пути ${_besedka_win2d_dll}; "
         "Беседка упадёт при создании окна, пока эта DLL не окажется рядом с ней.")
+endif()
+
+if(BESEDKA_BUILD_TESTS)
+    add_subdirectory(tests)
 endif()
