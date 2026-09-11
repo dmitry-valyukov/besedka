@@ -4,8 +4,9 @@
 // Порт TopicListScreen с его TopicCard из jana: заголовок темы, под ним
 // автор, число ответов и дата. Граватара автора здесь пока нет -- в jana он
 // приезжает по сети и кешируется в базе, а у Беседки нет ещё ни того, ни
-// другого. Стрелки «назад» у экрана нет тоже, и это уже не порт: назад и
-// вперёд ведёт каркас, как у браузера.
+// другого. Своего заголовка и стрелки «назад» у экрана нет тоже, и это уже
+// не порт: имя форума пишет строка пути каркаса, а назад и вперёд ведёт он
+// же, как у браузера.
 
 #include <functional>
 #include <optional>
@@ -24,12 +25,12 @@ public:
 
     const wxl::UIElement& root() const { return root_.value(); }
 
-    /// Чей это форум -- показывается в заголовке, пока темы ещё едут.
+    /// Чей это форум. Список при этом очищается: темы ещё едут.
     void setForum(const forum::ForumDescription& forum);
 
     /// Экран занят этим форумом: показывает его темы или ждёт их. По этому
     /// переход «назад» и «вперёд» узнаёт, что перечитывать нечего.
-    bool shows(int forumId) const noexcept { return forumId_ == forumId; }
+    bool shows(int forumId) const noexcept { return forum_ && forum_->id == forumId; }
 
     void show(const forum::MessagePage& page);
 
@@ -45,7 +46,8 @@ public:
     /// Масштаб списка; общий для всех списков, ставит навигатор.
     void setZoom(double factor);
 
-    std::function<void(const forum::MessageInfo&)> onOpen;
+    /// Выбрали тему; форум -- тот, чьи темы показаны.
+    std::function<void(const forum::ForumDescription&, const forum::MessageInfo&)> onOpen;
 
     /// Масштаб сменили щипком или Ctrl+колесом прямо здесь.
     std::function<void(double)> onZoomChanged;
@@ -64,11 +66,9 @@ private:
 
     wxl::Nullable<wxl::Grid> root_ = nullptr;
     wxl::Nullable<wxl::StackPanel> topics_ = nullptr;
-    wxl::Nullable<wxl::TextBlock> title_ = nullptr;
-    wxl::Nullable<wxl::TextBlock> counter_ = nullptr;
 
     /// Чей форум занял экран; пусто, пока ничей.
-    std::optional<int> forumId_;
+    std::optional<forum::ForumDescription> forum_;
 
     forum::MessagePage shown_;
 };

@@ -18,6 +18,7 @@
 // кнопкой должно появиться, написано у места.
 
 #include <functional>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -54,6 +55,11 @@ public:
     /// Подсветить вкладку текущей страницы. `onTab` при этом не зовётся:
     /// это ответ на переход, а не его причина.
     void selectTab(Tab tab);
+
+    /// Путь на верхней панели, в её свободной середине: «WinAPI / Такая-то
+    /// тема». Своих заголовков у страниц нет -- над картинкой-задником они не
+    /// читались, а путь на панели читается и говорит больше.
+    void setBreadcrumb(std::span<const std::wstring> crumbs);
 
     /// Кружок у названия: отвечает сервер или нет.
     void setServerStatus(ServerStatus status);
@@ -93,6 +99,7 @@ private:
 
     wxl::Nullable<wxl::Grid> root_ = nullptr;
     wxl::Nullable<wxl::Border> topBar_ = nullptr;
+    wxl::Nullable<wxl::Grid> crumbs_ = nullptr;
     wxl::Nullable<wxl::Border> tabsBar_ = nullptr;
     wxl::Nullable<wxl::Border> statusBar_ = nullptr;
     wxl::Nullable<wxl::SelectorBar> tabs_ = nullptr;

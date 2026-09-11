@@ -46,6 +46,11 @@ constexpr double kStatusHeight = 22;   // StatusBar: 16dp текста плюс 
 constexpr double kPanelRadius = 20;    // UserPanel: RoundedCornerShape(24)
 constexpr double kPanelHeight = 32;    // UserPanel: height(40) без отступов
 
+// Путь на верхней панели -- свой, у jana его нет: там заголовок стоял на
+// каждом экране.
+constexpr double kCrumbSize = 14;      // Material 3 titleSmall
+constexpr double kCrumbGap = 8;        // вокруг косой черты
+
 /// Кнопка-значок верхней панели: сама по себе прозрачная, как IconButton у
 /// Material, и обязана иметь подсказку -- значок без подписи себя не
 /// объясняет. Подсказка идёт и в имя для доступности: содержимое кнопки --
@@ -128,6 +133,15 @@ Shell::Shell() {
 
     auto about = iconButton(kInfo, L"О программе", [this] { if (onAbout) onAbout(); });
 
+    // Путь -- «WinAPI / Такая-то тема» -- в свободной середине панели, между
+    // именем форума и кнопками. Звенья кладёт setBreadcrumb: их число
+    // меняется от страницы к странице.
+    crumbs_ = Grid{
+        column = 4,
+        vAlign.center,
+        Margin{24, 0, 16, 0},
+    };
+
     // Панель пользователя. Пока в ней одна кнопка «Войти»: имя, картинка и
     // выход появятся вместе со входом, который есть в docs/decisions.md и
     // ещё не сделан.
@@ -177,6 +191,7 @@ Shell::Shell() {
                 foreground = palette.text,
             },
             dot_.value(),
+            crumbs_.value(),
             Grid{
                 column = 5,
                 vAlign.center,
@@ -314,6 +329,53 @@ void Shell::setMiddle(const Middle what, const UIElement& element) {
     topBar_.value().visibility(chrome);
     tabsBar_.value().visibility(chrome);
     statusBar_.value().visibility(chrome);
+}
+
+void Shell::setBreadcrumb(const std::span<const std::wstring> crumbs) {
+    const Grid& row = crumbs_.value();
+    const Collection<UIElement> children = row.children();
+
+    children.clear();
+
+    // Каждое звено -- в своей колонке по ширине текста, между ними косая
+    // черта; последнее -- в звёздной, чтобы длинная тема резалась многоточием,
+    // а не выталкивала соседей за край.
+    std::wstring columns;
+
+    for (std::size_t at = 0; at < crumbs.size(); ++at) {
+        if (at > 0) columns += L"auto,";
+
+        columns += at + 1 == crumbs.size() ? L"*" : L"auto,";
+    }
+
+    row.columnDefinitions(columns);
+
+    std::int32_t next = 0;
+
+    for (std::size_t at = 0; at < crumbs.size(); ++at) {
+        const bool last = at + 1 == crumbs.size();
+
+        if (at > 0)
+            children.append(TextBlock{
+                column = next++,
+                L"/",
+                fontSize = kCrumbSize,
+                Margin{kCrumbGap, 0, kCrumbGap, 0},
+                vAlign.center,
+                foreground = palette.textTertiary,
+            });
+
+        // Где мы -- жирным и тёмным, откуда пришли -- тише.
+        children.append(TextBlock{
+            column = next++,
+            std::wstring(crumbs[at]),
+            fontSize = kCrumbSize,
+            FontWeight{static_cast<std::uint16_t>(last ? 600 : 400)},
+            vAlign.center,
+            textTrimming.characterEllipsis,
+            foreground = last ? Brush(palette.text) : Brush(palette.textSecondary),
+        });
+    }
 }
 
 void Shell::showSplash(const UIElement& splash) { setMiddle(Middle::splash, splash); }

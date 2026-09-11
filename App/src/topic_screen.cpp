@@ -43,46 +43,15 @@ TopicScreen::TopicScreen() {
         Margin{kListPadding, 8, kListPadding, kListPadding},
     };
 
-    title_ = TextBlock{
-        column = 0,
-        fontSize = 22,
-        FontWeight{600},
-        foreground = palette.text,
-        vAlign.center,
-        textTrimming.characterEllipsis,
-    };
-
-    counter_ = TextBlock{
-        column = 1,
-        fontSize = 12,
-        vAlign.center,
-        Margin{16, 0, 0, 0},
-        foreground = palette.textTertiary,
-    };
-
     list_.emplace(topics_.value());
 
     list_->onZoomChanged = [this](const double factor) {
         if (onZoomChanged) onZoomChanged(factor);
     };
 
-    Grid::setRow(list_->root(), 1);
-
+    // Одна прокрутка и ничего над ней: где мы, говорит строка пути каркаса.
     root_ = Grid{
         isTabStop = true,
-
-        rowDefinitions = L"auto,*",
-
-        Grid{
-            row = 0,
-            Margin{kListPadding, 20, kListPadding, 4},
-            columnDefinitions = L"*,auto",
-            columnSpacing = 12,
-
-            title_.value(),
-            counter_.value(),
-        },
-
         list_->root(),
     };
 }
@@ -90,17 +59,12 @@ TopicScreen::TopicScreen() {
 void TopicScreen::setZoom(const double factor) { list_->zoom(factor); }
 
 void TopicScreen::setForum(const forum::ForumDescription& forum) {
-    forumId_ = forum.id;
-
-    title_.value().text(forum.name);
-    counter_.value().text(L"читаю темы…");
+    forum_ = forum;
 
     topics_.value().children().clear();
 }
 
 void TopicScreen::setError(const std::wstring_view said) {
-    counter_.value().text({});
-
     topics_.value().children().clear();
     topics_.value().children().append(TextBlock{
         std::wstring(said),
@@ -113,8 +77,6 @@ void TopicScreen::setError(const std::wstring_view said) {
 
 void TopicScreen::show(const forum::MessagePage& page) {
     shown_ = page;
-
-    counter_.value().text(std::format(L"тем: {}", page.total));
 
     topics_.value().children().clear();
 
@@ -217,7 +179,7 @@ void TopicScreen::openById(const int32_t id) {
     const auto found = std::ranges::find_if(
         shown_.items, [id](const forum::Message& message) { return message.info.id == id; });
 
-    if (found != shown_.items.end()) onOpen(found->info);
+    if (found != shown_.items.end()) onOpen(*forum_, found->info);
 }
 
 }  // namespace besedka::app
