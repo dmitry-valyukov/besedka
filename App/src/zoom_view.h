@@ -45,6 +45,9 @@ private:
     /// сообщать о масштабе надо только когда он и правда сменился.
     double reported_ = 1;
 
+    /// Сколько раз ChangeView отказал на этом масштабе.
+    int retries_ = 0;
+
     wxl::Nullable<wxl::ScrollViewer> root_ = nullptr;
 };
 

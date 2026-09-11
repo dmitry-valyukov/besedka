@@ -16,6 +16,9 @@ namespace {
 // Масштаб у ScrollViewer -- float, а у нас double: равенство с допуском.
 constexpr double kSame = 1e-4;
 
+// Сколько раз переспрашивать ChangeView, прежде чем оставить как есть.
+constexpr int kRetries = 3;
+
 bool same(const double left, const double right) noexcept { return std::abs(left - right) < kSame; }
 
 }  // namespace
@@ -56,6 +59,7 @@ void ZoomView::zoom(const double factor) {
 
     zoom_ = factor;
     reported_ = factor;
+    retries_ = 0;
 
     apply();
 }
@@ -66,10 +70,21 @@ void ZoomView::apply() {
 
     if (viewport <= 0) return;
 
-    content_.width(viewport / zoom_);
+    // Сначала масштаб, потом ширина. ChangeView молча отказывает, когда у
+    // ScrollViewer не досчитана вёрстка, а смена ширины содержимого как раз
+    // её и пачкает: на левой странице масштаб от щипка справа не приезжал,
+    // и список стоял узким в единице. Отказ всё же случается -- тогда ещё
+    // раз, когда очередь дойдёт до нас, то есть после вёрстки; и не до
+    // бесконечности.
+    if (!same(viewer.zoomFactor(), zoom_) &&
+        !viewer.changeView(std::nullopt, std::nullopt, static_cast<float>(zoom_), true) &&
+        retries_ < kRetries) {
+        ++retries_;
+        DispatcherQueue::getForCurrentThread().tryEnqueue([this] { apply(); });
+        return;
+    }
 
-    if (!same(viewer.zoomFactor(), zoom_))
-        viewer.changeView(std::nullopt, std::nullopt, static_cast<float>(zoom_), true);
+    content_.width(viewport / zoom_);
 }
 
 }  // namespace besedka::app
