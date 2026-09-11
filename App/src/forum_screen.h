@@ -13,10 +13,12 @@
 // виртуализацию.
 
 #include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "pch.h"
+#include "zoom_view.h"
 
 import besedka.forum;
 
@@ -36,10 +38,20 @@ public:
     /// одиночный принадлежит её содержимому. Ставит каркас, раскладывая стопку.
     void setSecondary(bool secondary) { secondary_ = secondary; }
 
+    /// Масштаб списка; общий для всех списков, ставит навигатор.
+    void setZoom(double factor);
+
     std::function<void(const forum::ForumDescription&)> onOpen;
+
+    /// Масштаб сменили щипком или Ctrl+колесом прямо здесь.
+    std::function<void(double)> onZoomChanged;
 
 private:
     bool secondary_ = false;
+
+    /// Прокрутка с масштабом вокруг списка групп. Появляется в конструкторе,
+    /// когда есть что прокручивать.
+    std::optional<ZoomView> list_;
 
     /// Одна строка витрины. Кнопка, потому что по форуму щёлкают, а всё,
     /// что кнопка умеет сама -- наведение, нажатие, фокус, клавиатура, --

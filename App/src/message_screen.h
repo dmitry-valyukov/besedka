@@ -14,10 +14,12 @@
 //
 // Стрелки «назад» у экрана нет: назад и вперёд ведёт каркас, как у браузера.
 
+#include <functional>
 #include <optional>
 #include <string>
 
 #include "pch.h"
+#include "zoom_view.h"
 
 import besedka.forum;
 
@@ -44,7 +46,15 @@ public:
     /// `smiles/`.
     void setBaseDirectory(std::wstring_view directory);
 
+    /// Масштаб сообщений; общий для всех списков, ставит навигатор.
+    void setZoom(double factor);
+
+    /// Масштаб сменили щипком или Ctrl+колесом прямо здесь.
+    std::function<void(double)> onZoomChanged;
+
 private:
+    std::optional<ZoomView> list_;
+
     wxl::UIElement messageCard(const forum::Message& message, int depth,
                                const std::chrono::time_zone& zone);
 

@@ -12,6 +12,7 @@
 #include <string>
 
 #include "pch.h"
+#include "zoom_view.h"
 
 import besedka.forum;
 
@@ -41,10 +42,18 @@ public:
     /// страницы.
     void setSecondary(bool secondary) { secondary_ = secondary; }
 
+    /// Масштаб списка; общий для всех списков, ставит навигатор.
+    void setZoom(double factor);
+
     std::function<void(const forum::MessageInfo&)> onOpen;
+
+    /// Масштаб сменили щипком или Ctrl+колесом прямо здесь.
+    std::function<void(double)> onZoomChanged;
 
 private:
     bool secondary_ = false;
+
+    std::optional<ZoomView> list_;
 
     wxl::Button topicRow(const forum::MessageInfo& topic,
                          std::chrono::system_clock::time_point now,

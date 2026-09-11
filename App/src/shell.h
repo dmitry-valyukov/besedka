@@ -67,6 +67,12 @@ public:
 
     std::function<void()> onBack;
     std::function<void()> onForward;
+
+    /// Ctrl с плюсом, минусом и нулём -- как в браузере.
+    std::function<void()> onZoomIn;
+    std::function<void()> onZoomOut;
+    std::function<void()> onZoomReset;
+
     std::function<void()> onRefresh;
     std::function<void(Tab)> onTab;
     std::function<void()> onLogin;

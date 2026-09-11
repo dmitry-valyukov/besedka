@@ -76,14 +76,19 @@ ForumScreen::ForumScreen() {
     // Своего заголовка у витрины нет: имя, состояние сервера и обновление
     // живут на верхней панели каркаса -- как в jana, где ForumListScreen
     // отдаёт всё это Scaffold'у.
+    list_.emplace(groups_.value());
+
+    list_->onZoomChanged = [this](const double factor) {
+        if (onZoomChanged) onZoomChanged(factor);
+    };
+
     root_ = Grid{
         isTabStop = true,
-
-        ScrollViewer{
-            content = groups_.value(),
-        },
+        list_->root(),
     };
 }
+
+void ForumScreen::setZoom(const double factor) { list_->zoom(factor); }
 
 void ForumScreen::show(const std::vector<forum::ForumDescription>& forums) {
     shown_ = forums;
