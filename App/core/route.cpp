@@ -76,4 +76,16 @@ std::wstring titleOf(const Route& route) {
                       route);
 }
 
+std::vector<std::wstring> pathOf(const Route& route) {
+    std::vector<std::wstring> path;
+
+    // Над темой стоит её форум; над остальным -- ничего.
+    if (const MessagesRoute* messages = std::get_if<MessagesRoute>(&route))
+        path.push_back(messages->forum.name);
+
+    path.push_back(titleOf(route));
+
+    return path;
+}
+
 }  // namespace besedka::app

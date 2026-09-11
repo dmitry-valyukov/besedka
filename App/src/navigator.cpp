@@ -46,8 +46,8 @@ Navigator::Navigator(forum::Api& api, Shell& shell, const std::filesystem::path&
         open(Screen::forums, TopicsRoute{forum});
     };
 
-    topics_.onOpen = [this](const forum::MessageInfo& topic) {
-        open(Screen::topics, MessagesRoute{topic});
+    topics_.onOpen = [this](const forum::ForumDescription& forum, const forum::MessageInfo& topic) {
+        open(Screen::topics, MessagesRoute{forum, topic});
     };
 
     shell_.onBack = [this] { back(); };
@@ -155,7 +155,11 @@ void Navigator::moved() {
     shell_.setCanGoBack(history_.canGoBack());
     shell_.setCanGoForward(history_.canGoForward());
     shell_.selectTab(tabOf(current));
-    shell_.setStatusText(titleOf(current));
+    shell_.setBreadcrumb(pathOf(current));
+}
+
+bool Navigator::isCurrent(const Route& route) const {
+    return !history_.empty() && sameRoute(history_.current(), route);
 }
 
 void Navigator::show() {
@@ -193,19 +197,28 @@ void Navigator::load(const Route& route, const bool again) {
                 if (again) loadShowcase();
             },
 
-            [this, again](const TopicsRoute& topics) {
+            [this, again, &route](const TopicsRoute& topics) {
                 const int forumId = topics.forum.id;
 
                 if (!again && topics_.shows(forumId)) return;
 
                 topics_.setForum(topics.forum);
 
+                // Счёт -- в полосу состояния, и только у той страницы, на
+                // которой стоим: своего заголовка у экрана больше нет.
+                if (isCurrent(route)) shell_.setStatusText(L"Читаю темы…");
+
                 // Ответ мог обогнать другой: пока ехали темы одного форума,
                 // открыли другой. Приехавшее не для того форума, что на
                 // экране, просто выбрасывается.
                 api_.topics(forumId, kTopicsPerPage)
-                    .when_succeeded([this, forumId](const forum::MessagePage& page) noexcept {
-                        if (topics_.shows(forumId)) topics_.show(page);
+                    .when_succeeded([this, forumId, route](const forum::MessagePage& page) noexcept {
+                        if (!topics_.shows(forumId)) return;
+
+                        topics_.show(page);
+
+                        if (isCurrent(route))
+                            shell_.setStatusText(std::format(L"Тем в форуме: {}", page.total));
                     })
                     .when_failed([this, forumId](const std::exception_ptr& why) noexcept {
                         if (topics_.shows(forumId)) topics_.setError(reasonOf(why));
@@ -214,17 +227,24 @@ void Navigator::load(const Route& route, const bool again) {
                     });
             },
 
-            [this, again](const MessagesRoute& messages) {
+            [this, again, &route](const MessagesRoute& messages) {
                 const int topicId = messages.topic.id;
 
                 if (!again && messages_.shows(topicId)) return;
 
                 messages_.setTopic(messages.topic);
 
+                if (isCurrent(route)) shell_.setStatusText(L"Читаю сообщения…");
+
                 // Тела приезжают вместе со списком: одна поездка на всю тему.
                 api_.answers(topicId, kMessagesPerTopic)
-                    .when_succeeded([this, topicId](const forum::MessagePage& page) noexcept {
-                        if (messages_.shows(topicId)) messages_.show(page);
+                    .when_succeeded([this, topicId, route](const forum::MessagePage& page) noexcept {
+                        if (!messages_.shows(topicId)) return;
+
+                        messages_.show(page);
+
+                        if (isCurrent(route))
+                            shell_.setStatusText(std::format(L"Сообщений в теме: {}", page.total));
                     })
                     .when_failed([this, topicId](const std::exception_ptr& why) noexcept {
                         if (messages_.shows(topicId)) messages_.setError(reasonOf(why));

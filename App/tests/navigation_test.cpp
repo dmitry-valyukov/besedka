@@ -17,7 +17,7 @@ namespace {
 
 Route topicsOf(const int forumId) { return TopicsRoute{forum::ForumDescription{.id = forumId}}; }
 
-Route messagesOf(const int topicId) { return MessagesRoute{forum::MessageInfo{.id = topicId}}; }
+Route messagesOf(const int topicId) { return MessagesRoute{{}, forum::MessageInfo{.id = topicId}}; }
 
 std::vector<Screen> screensOf(const std::vector<PagePlan::Slot>& shown) {
     std::vector<Screen> screens;
@@ -64,9 +64,21 @@ TEST(route, same_route_means_the_same_page_not_the_same_kind) {
 
 TEST(route, the_title_is_what_the_page_is_about) {
     EXPECT_EQ(titleOf(TopicsRoute{forum::ForumDescription{.name = L"C/C++"}}), L"C/C++");
-    EXPECT_EQ(titleOf(MessagesRoute{forum::MessageInfo{.subject = L"Модули"}}), L"Модули");
+    EXPECT_EQ(titleOf(MessagesRoute{{}, forum::MessageInfo{.subject = L"Модули"}}), L"Модули");
     EXPECT_EQ(titleOf(WatchedRoute{}), L"Избранное");
     EXPECT_EQ(titleOf(OutboxRoute{}), L"Исходящие");
+}
+
+TEST(route, the_path_leads_from_the_forum_to_the_topic) {
+    const forum::ForumDescription winapi{.id = 3, .name = L"WinAPI"};
+
+    using Path = std::vector<std::wstring>;
+
+    EXPECT_EQ(pathOf(ForumsRoute{}), Path{L"Форумы"});
+    EXPECT_EQ(pathOf(WatchedRoute{}), Path{L"Избранное"});
+    EXPECT_EQ(pathOf(TopicsRoute{winapi}), Path{L"WinAPI"});
+    EXPECT_EQ(pathOf(MessagesRoute{winapi, forum::MessageInfo{.subject = L"UB в сетевом API"}}),
+              (Path{L"WinAPI", L"UB в сетевом API"}));
 }
 
 // ---- история ----

@@ -44,46 +44,15 @@ MessageScreen::MessageScreen() {
         Margin{kListPadding, 8, kListPadding, kListPadding},
     };
 
-    title_ = TextBlock{
-        column = 0,
-        fontSize = 18,
-        FontWeight{600},
-        foreground = palette.text,
-        vAlign.center,
-        textTrimming.characterEllipsis,
-    };
-
-    counter_ = TextBlock{
-        column = 1,
-        fontSize = 12,
-        vAlign.center,
-        Margin{16, 0, 0, 0},
-        foreground = palette.textTertiary,
-    };
-
     list_.emplace(messages_.value());
 
     list_->onZoomChanged = [this](const double factor) {
         if (onZoomChanged) onZoomChanged(factor);
     };
 
-    Grid::setRow(list_->root(), 1);
-
+    // Одна прокрутка и ничего над ней: тему называет строка пути каркаса.
     root_ = Grid{
         isTabStop = true,
-
-        rowDefinitions = L"auto,*",
-
-        Grid{
-            row = 0,
-            Margin{16, 20, 16, 4},
-            columnDefinitions = L"*,auto",
-            columnSpacing = 12,
-
-            title_.value(),
-            counter_.value(),
-        },
-
         list_->root(),
     };
 }
@@ -97,15 +66,10 @@ void MessageScreen::setBaseDirectory(const std::wstring_view directory) {
 void MessageScreen::setTopic(const forum::MessageInfo& topic) {
     topicId_ = topic.id;
 
-    title_.value().text(topic.subject);
-    counter_.value().text(L"читаю сообщения…");
-
     messages_.value().children().clear();
 }
 
 void MessageScreen::setError(const std::wstring_view said) {
-    counter_.value().text({});
-
     messages_.value().children().clear();
     messages_.value().children().append(TextBlock{
         std::wstring(said),
@@ -117,8 +81,6 @@ void MessageScreen::setError(const std::wstring_view said) {
 }
 
 void MessageScreen::show(const forum::MessagePage& page) {
-    counter_.value().text(std::format(L"сообщений: {}", page.total));
-
     messages_.value().children().clear();
 
     const std::vector<int> depths = replyDepths(page);

@@ -12,7 +12,8 @@
 // (replyDepths из besedka.app). Отступ читается сразу и не требует ни одного
 // щелчка.
 //
-// Стрелки «назад» у экрана нет: назад и вперёд ведёт каркас, как у браузера.
+// Своего заголовка и стрелки «назад» у экрана нет: тему называет строка пути
+// каркаса, а назад и вперёд ведёт он же, как у браузера.
 
 #include <functional>
 #include <optional>
@@ -31,7 +32,7 @@ public:
 
     const wxl::UIElement& root() const { return root_.value(); }
 
-    /// Какая тема открыта -- показывается, пока сообщения ещё едут.
+    /// Какая тема открыта. Список при этом очищается: сообщения ещё едут.
     void setTopic(const forum::MessageInfo& topic);
 
     /// Экран занят этой темой: показывает её сообщения или ждёт их. По этому
@@ -60,8 +61,6 @@ private:
 
     wxl::Nullable<wxl::Grid> root_ = nullptr;
     wxl::Nullable<wxl::StackPanel> messages_ = nullptr;
-    wxl::Nullable<wxl::TextBlock> title_ = nullptr;
-    wxl::Nullable<wxl::TextBlock> counter_ = nullptr;
 
     /// Чья тема заняла экран; пусто, пока ничья.
     std::optional<int> topicId_;

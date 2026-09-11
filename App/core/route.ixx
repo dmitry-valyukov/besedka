@@ -36,8 +36,10 @@ struct TopicsRoute {
     forum::ForumDescription forum;
 };
 
-/// Сообщения одной темы.
+/// Сообщения одной темы. Форум едет вместе с темой: у темы есть только его
+/// номер, а строке пути нужно имя.
 struct MessagesRoute {
+    forum::ForumDescription forum;
     forum::MessageInfo topic;
 };
 
@@ -54,7 +56,12 @@ Route rootOf(Tab tab);
 /// Та же страница: та же витрина, тот же форум, та же тема.
 bool sameRoute(const Route& left, const Route& right);
 
-/// Подпись в полосу состояния: имя форума, тема, название вкладки.
+/// Чем страница названа: имя форума, тема, название вкладки. Последнее звено
+/// пути.
 std::wstring titleOf(const Route& route);
+
+/// Путь до страницы, звеньями: «WinAPI», «Тема». Корень вкладки в него не
+/// входит -- вкладка и так подсвечена внизу.
+std::vector<std::wstring> pathOf(const Route& route);
 
 }  // namespace besedka::app
