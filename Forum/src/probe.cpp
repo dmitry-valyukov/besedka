@@ -43,7 +43,7 @@ std::string padded(std::wstring_view text, std::size_t width) {
     std::string bytes = utf8(text);
 
     const std::optional<wxl::unicode::u8_view> checked = wxl::unicode::checked(std::string_view(bytes));
-    const std::size_t points = checked ? wxl::unicode::count_code_points(*checked) : bytes.size();
+    const std::size_t points = checked ? wxl::unicode::code_point_count(*checked) : bytes.size();
 
     if (points < width) bytes.append(width - points, ' ');
 

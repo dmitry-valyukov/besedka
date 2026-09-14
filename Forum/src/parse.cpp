@@ -1,6 +1,7 @@
 module besedka.forum;
 
 import std;
+import wxl.core;
 import wxl.json;
 import wxl.unicode;
 
@@ -23,7 +24,7 @@ std::wstring wide(const value& from) { return wide(from.as_string()); }
 
 int number(const value& from) { return static_cast<int>(from.as_int()); }
 
-std::optional<int> digits(const std::string_view text) { return wxl::unicode::parse<int>(text); }
+wxl::core::nullable<int> digits(const std::string_view text) { return wxl::unicode::parse<int>(text); }
 
 }  // namespace
 
@@ -41,12 +42,12 @@ std::chrono::system_clock::time_point readTimestamp(const wxl::unicode::u8_view 
 
     if (text[10] != 'T' && text[10] != 't' && text[10] != ' ') return {};
 
-    const std::optional<int> years = digits(text.substr(0, 4));
-    const std::optional<int> months = digits(text.substr(5, 2));
-    const std::optional<int> days = digits(text.substr(8, 2));
-    const std::optional<int> hh = digits(text.substr(11, 2));
-    const std::optional<int> mm = digits(text.substr(14, 2));
-    const std::optional<int> ss = digits(text.substr(17, 2));
+    const wxl::core::nullable<int> years = digits(text.substr(0, 4));
+    const wxl::core::nullable<int> months = digits(text.substr(5, 2));
+    const wxl::core::nullable<int> days = digits(text.substr(8, 2));
+    const wxl::core::nullable<int> hh = digits(text.substr(11, 2));
+    const wxl::core::nullable<int> mm = digits(text.substr(14, 2));
+    const wxl::core::nullable<int> ss = digits(text.substr(17, 2));
 
     if (!years || !months || !days || !hh || !mm || !ss) return {};
 
@@ -91,8 +92,8 @@ std::chrono::system_clock::time_point readTimestamp(const wxl::unicode::u8_view 
 
     if (at < text.size() && (text[at] == '+' || text[at] == '-') && text.size() - at >= 6 &&
         text[at + 3] == ':') {
-        const std::optional<int> oh = digits(text.substr(at + 1, 2));
-        const std::optional<int> om = digits(text.substr(at + 4, 2));
+        const wxl::core::nullable<int> oh = digits(text.substr(at + 1, 2));
+        const wxl::core::nullable<int> om = digits(text.substr(at + 4, 2));
 
         if (oh && om) {
             offset = hours{*oh} + minutes{*om};

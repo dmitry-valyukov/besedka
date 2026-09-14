@@ -67,14 +67,14 @@ Settings parseSettings(std::string xml) {
             if (const std::optional<wxl::unicode::u8_view> split = layout->attribute("split")) {
                 // Разбор без локали: в файле точка, что бы ни стояло в
                 // Windows. Непрочитанное число оставляет умолчание -- половину.
-                if (const std::optional<double> value = wxl::unicode::parse<double>(split->chars()))
+                if (const wxl::core::nullable<double> value = wxl::unicode::parse<double>(split->chars()))
                     settings.splitFraction = *value;
             }
         }
 
         if (const wxl::xml::node* view = root.child("view")) {
             if (const std::optional<wxl::unicode::u8_view> zoom = view->attribute("zoom")) {
-                if (const std::optional<double> value = wxl::unicode::parse<double>(zoom->chars()))
+                if (const wxl::core::nullable<double> value = wxl::unicode::parse<double>(zoom->chars()))
                     settings.zoom = *value;
             }
         }
