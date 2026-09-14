@@ -32,8 +32,8 @@ public:
     void setServerLine(std::wstring_view said);
 
 private:
-    wxl::Nullable<wxl::ContentDialog> dialog_ = nullptr;
-    wxl::Nullable<wxl::TextBlock> server_ = nullptr;
+    wxl::core::nullable<wxl::ContentDialog> dialog_ = nullptr;
+    wxl::core::nullable<wxl::TextBlock> server_ = nullptr;
 };
 
 }  // namespace besedka::app

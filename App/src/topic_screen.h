@@ -64,8 +64,8 @@ private:
     /// Открыть тему по идентификатору -- общее тело обоих щелчков.
     void openById(int32_t id);
 
-    wxl::Nullable<wxl::Grid> root_ = nullptr;
-    wxl::Nullable<wxl::StackPanel> topics_ = nullptr;
+    wxl::core::nullable<wxl::Grid> root_ = nullptr;
+    wxl::core::nullable<wxl::StackPanel> topics_ = nullptr;
 
     /// Чей форум занял экран; пусто, пока ничей.
     std::optional<forum::ForumDescription> forum_;

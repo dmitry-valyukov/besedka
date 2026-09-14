@@ -36,10 +36,10 @@ public:
     std::function<void()> onRetry;
 
 private:
-    wxl::Nullable<wxl::OverlayCard> root_ = nullptr;
-    wxl::Nullable<wxl::TextBlock> status_ = nullptr;
-    wxl::Nullable<wxl::ProgressRing> ring_ = nullptr;
-    wxl::Nullable<wxl::Button> retry_ = nullptr;
+    wxl::core::nullable<wxl::OverlayCard> root_ = nullptr;
+    wxl::core::nullable<wxl::TextBlock> status_ = nullptr;
+    wxl::core::nullable<wxl::ProgressRing> ring_ = nullptr;
+    wxl::core::nullable<wxl::Button> retry_ = nullptr;
 };
 
 }  // namespace besedka::app

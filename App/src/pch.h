@@ -3,7 +3,6 @@
 // Всё, что приложению нужно от wxl, и ни одного заголовка winrt: доступ к
 // декларативной поверхности не должен стоить потребителю разбора проекции.
 
-#include "Nullable.h"
 #include "aliases.h"
 #include "Card.h"
 #include "generated/Members.h"
