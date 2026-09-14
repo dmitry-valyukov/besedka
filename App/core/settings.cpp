@@ -85,8 +85,9 @@ Settings parseSettings(std::string xml) {
 
 std::string formatSettings(const Settings& settings) {
     // text_builder, а не поток: локали у него нет вовсе, и написанное не
-    // зависит от того, что стоит в Windows.
-    wxl::unicode::text_builder<> out;
+    // зависит от того, что стоит в Windows. Настройки пишутся с потока
+    // интерфейса (таймер его очереди), поэтому буфер -- из его пула.
+    wxl::unicode::text_builder<wxl::core::sta_allocator> out;
 
     out.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
     out.format("<settings version=\"{}\">\n", Settings::kVersion);
