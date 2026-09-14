@@ -126,7 +126,7 @@ Shell::Shell() {
     // недосмотр, а работа в wxl -- присвоенная кисть темы не следует за
     // сменой темы, а шаблоны WinUI после флипа перекрашиваются не все.
     // Проверено на этом же окне, записано в M:\wxl\TODO.txt.
-    theme_ = iconButton(kThemeSystem, L"Системная тема", [this] {
+    auto theme = iconButton(kThemeSystem, L"Системная тема", [this] {
         setStatusText(L"Тема пока только системная: присвоенная кисть за сменой темы не "
                       L"идёт -- работа записана в wxl.");
     });
@@ -198,7 +198,7 @@ Shell::Shell() {
                 refresh_.value(),
                 ring_.value(),
             },
-            Grid{column = 6, theme_.value()},
+            Grid{column = 6, theme},
             Grid{column = 7, user},
             Grid{column = 8, about},
         },

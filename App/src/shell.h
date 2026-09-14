@@ -109,7 +109,6 @@ private:
     wxl::core::nullable<wxl::Button> forward_ = nullptr;
     wxl::core::nullable<wxl::Button> refresh_ = nullptr;
     wxl::core::nullable<wxl::ProgressRing> ring_ = nullptr;
-    wxl::core::nullable<wxl::Button> theme_ = nullptr;
 };
 
 }  // namespace besedka::app
