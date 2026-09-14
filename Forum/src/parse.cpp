@@ -1,7 +1,6 @@
 module besedka.forum;
 
 import std;
-import wxl.core;
 import wxl.json;
 import wxl.unicode;
 
@@ -24,7 +23,9 @@ std::wstring wide(const value& from) { return wide(from.as_string()); }
 
 int number(const value& from) { return static_cast<int>(from.as_int()); }
 
-wxl::core::nullable<int> digits(const std::string_view text) { return wxl::unicode::parse<int>(text); }
+// Поле даты целиком, или отказ: try_parse не трогает `out`, пока не разберёт
+// весь кусок, так что половины числа тут не бывает.
+bool digits(const std::string_view text, int& out) { return wxl::unicode::try_parse(text, out); }
 
 }  // namespace
 
@@ -42,17 +43,20 @@ std::chrono::system_clock::time_point readTimestamp(const wxl::unicode::u8_view 
 
     if (text[10] != 'T' && text[10] != 't' && text[10] != ' ') return {};
 
-    const wxl::core::nullable<int> years = digits(text.substr(0, 4));
-    const wxl::core::nullable<int> months = digits(text.substr(5, 2));
-    const wxl::core::nullable<int> days = digits(text.substr(8, 2));
-    const wxl::core::nullable<int> hh = digits(text.substr(11, 2));
-    const wxl::core::nullable<int> mm = digits(text.substr(14, 2));
-    const wxl::core::nullable<int> ss = digits(text.substr(17, 2));
+    int years = 0;
+    int months = 0;
+    int days = 0;
+    int hh = 0;
+    int mm = 0;
+    int ss = 0;
 
-    if (!years || !months || !days || !hh || !mm || !ss) return {};
+    if (!digits(text.substr(0, 4), years) || !digits(text.substr(5, 2), months) ||
+        !digits(text.substr(8, 2), days) || !digits(text.substr(11, 2), hh) ||
+        !digits(text.substr(14, 2), mm) || !digits(text.substr(17, 2), ss))
+        return {};
 
-    const year_month_day date{year{*years}, month{static_cast<unsigned>(*months)},
-                              day{static_cast<unsigned>(*days)}};
+    const year_month_day date{year{years}, month{static_cast<unsigned>(months)},
+                              day{static_cast<unsigned>(days)}};
 
     if (!date.ok()) return {};
 
@@ -92,17 +96,17 @@ std::chrono::system_clock::time_point readTimestamp(const wxl::unicode::u8_view 
 
     if (at < text.size() && (text[at] == '+' || text[at] == '-') && text.size() - at >= 6 &&
         text[at + 3] == ':') {
-        const wxl::core::nullable<int> oh = digits(text.substr(at + 1, 2));
-        const wxl::core::nullable<int> om = digits(text.substr(at + 4, 2));
+        int oh = 0;
+        int om = 0;
 
-        if (oh && om) {
-            offset = hours{*oh} + minutes{*om};
+        if (digits(text.substr(at + 1, 2), oh) && digits(text.substr(at + 4, 2), om)) {
+            offset = hours{oh} + minutes{om};
 
             if (text[at] == '-') offset = -offset;
         }
     }
 
-    const sys_seconds moment = sys_days{date} + hours{*hh} + minutes{*mm} + seconds{*ss};
+    const sys_seconds moment = sys_days{date} + hours{hh} + minutes{mm} + seconds{ss};
 
     return time_point_cast<system_clock::duration>(moment + fraction - offset);
 }

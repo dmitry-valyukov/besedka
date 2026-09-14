@@ -66,17 +66,15 @@ Settings parseSettings(std::string xml) {
         if (const wxl::xml::node* layout = root.child("layout")) {
             if (const std::optional<wxl::unicode::u8_view> split = layout->attribute("split")) {
                 // Разбор без локали: в файле точка, что бы ни стояло в
-                // Windows. Непрочитанное число оставляет умолчание -- половину.
-                if (const wxl::core::nullable<double> value = wxl::unicode::parse<double>(split->chars()))
-                    settings.splitFraction = *value;
+                // Windows. Непрочитанное число оставляет умолчание -- половину:
+                // try_parse не трогает результат, пока не разберёт весь текст.
+                wxl::unicode::try_parse(split->chars(), settings.splitFraction);
             }
         }
 
         if (const wxl::xml::node* view = root.child("view")) {
-            if (const std::optional<wxl::unicode::u8_view> zoom = view->attribute("zoom")) {
-                if (const wxl::core::nullable<double> value = wxl::unicode::parse<double>(zoom->chars()))
-                    settings.zoom = *value;
-            }
+            if (const std::optional<wxl::unicode::u8_view> zoom = view->attribute("zoom"))
+                wxl::unicode::try_parse(zoom->chars(), settings.zoom);
         }
     } catch (...) {
         return Settings{};
