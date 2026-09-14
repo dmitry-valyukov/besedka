@@ -27,14 +27,14 @@ import std;
 import besedka.forum;
 import wxl.async;
 import wxl.core;
-import wxl.text;
+import wxl.unicode;
 
 namespace {
 
 using namespace besedka;
 
 std::string utf8(std::wstring_view text) {
-    return std::string(wxl::text::repaired(text).to_utf8().chars());
+    return std::string(wxl::unicode::repaired(text).to_utf8().chars());
 }
 
 /// Колонка шириной в символах, а не в байтах: printf считает байты, и от
@@ -42,8 +42,8 @@ std::string utf8(std::wstring_view text) {
 std::string padded(std::wstring_view text, std::size_t width) {
     std::string bytes = utf8(text);
 
-    const std::optional<wxl::text::u8_view> checked = wxl::text::checked(std::string_view(bytes));
-    const std::size_t points = checked ? wxl::text::count_code_points(*checked) : bytes.size();
+    const std::optional<wxl::unicode::u8_view> checked = wxl::unicode::checked(std::string_view(bytes));
+    const std::size_t points = checked ? wxl::unicode::count_code_points(*checked) : bytes.size();
 
     if (points < width) bytes.append(width - points, ' ');
 

@@ -3,15 +3,15 @@ module besedka.forum;
 import std;
 import wxl.async;
 import wxl.json;
-import wxl.text;
+import wxl.unicode;
 
 namespace besedka::forum {
 namespace {
 
-/// Число как кусок адреса. Через wxl::text -- то есть без локали: с
+/// Число как кусок адреса. Через wxl::unicode -- то есть без локали: с
 /// настройками на русский обычная печать числа однажды поставит запятую
 /// туда, где сервер ждёт цифру.
-std::wstring digits(int value) { return wxl::text::to_wstring(value); }
+std::wstring digits(int value) { return wxl::unicode::to_wstring(value); }
 
 /// Ответ -> модель. Отказ сервера превращается в исключение здесь, а не в
 /// транспорте: транспорт не знает, что значит код, а тут известно, что
@@ -25,7 +25,7 @@ auto reading(Read read) {
         if (!answer.ok())
             throw HttpError(
                 answer.status,
-                wxl::text::repaired(std::format(L"сервер ответил {}", answer.status)));
+                wxl::unicode::repaired(std::format(L"сервер ответил {}", answer.status)));
 
         wxl::json::document document;
 

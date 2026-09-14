@@ -22,7 +22,7 @@ export module besedka.forum:parse;
 import :model;
 import std;
 import wxl.json;
-import wxl.text;
+import wxl.unicode;
 
 export namespace besedka::forum {
 
@@ -31,7 +31,7 @@ export namespace besedka::forum {
 ///
 /// Непрочитанное время -- начало эпохи, а не отказ: одна кривая дата не
 /// стоит потерянной страницы сообщений, а в списке она сразу видна.
-std::chrono::system_clock::time_point readTimestamp(wxl::text::u8_view stamp);
+std::chrono::system_clock::time_point readTimestamp(wxl::unicode::u8_view stamp);
 
 ForumGroup readForumGroup(const wxl::json::value& from);
 ForumDescription readForum(const wxl::json::value& from);

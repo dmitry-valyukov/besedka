@@ -7,7 +7,7 @@
 #include <string_view>
 
 import besedka.rsdn;
-import wxl.text;
+import wxl.unicode;
 
 using namespace wxl;
 using namespace besedka;
@@ -17,7 +17,7 @@ namespace {
 std::string parsed(std::wstring_view input) {
     const html::document doc = rsdn::parse(input);
     const std::wstring wide = html::serialized(doc.root());
-    return std::string(wxl::text::checked(std::wstring_view(wide)).value().to_utf8().chars());
+    return std::string(wxl::unicode::checked(std::wstring_view(wide)).value().to_utf8().chars());
 }
 
 TEST(rsdn, inline_formatting) {

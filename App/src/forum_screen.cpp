@@ -6,7 +6,7 @@
 
 // Импорт последним, после всех обычных заголовков.
 import besedka.app;
-import wxl.text;
+import wxl.unicode;
 
 namespace besedka::app {
 
@@ -192,7 +192,7 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
             // Ребёнок, а не содержимое: Border несёт ровно одного, и
             // свойство у него так и называется -- child.
             TextBlock{
-                wxl::text::ascii_upper(std::wstring_view(forum.code)),
+                wxl::unicode::ascii_upper(std::wstring_view(forum.code)),
                 fontSize = kLabelSize,
                 FontWeight{900},
                 foreground = palette.textSecondary,

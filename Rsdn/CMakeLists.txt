@@ -17,7 +17,7 @@ wxl_add_module_library(besedka.rsdn STATIC
 add_library(besedka::rsdn ALIAS besedka.rsdn)
 
 # PUBLIC: parse() отвечает html::document -- дерево семейства стоит в
-# интерфейсе, и с ним приезжают wxl::core, wxl::text и wxl::xml.
+# интерфейсе, и с ним приезжают wxl::core, wxl::unicode и wxl::xml.
 target_link_libraries(besedka.rsdn PUBLIC wxl::html)
 
 # PRIVATE: подсветка кода живёт внутри токенизатора -- наружу выходит дерево

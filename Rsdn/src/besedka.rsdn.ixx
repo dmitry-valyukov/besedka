@@ -27,7 +27,7 @@ export module besedka.rsdn;
 
 import std;
 export import wxl.html;
-import wxl.text;
+import wxl.unicode;
 
 export namespace besedka::rsdn {
 
@@ -36,6 +36,6 @@ export namespace besedka::rsdn {
 wxl::html::document parse(std::wstring_view input);
 
 /// То же для проверенного UTF-8.
-wxl::html::document parse(wxl::text::u8_view input);
+wxl::html::document parse(wxl::unicode::u8_view input);
 
 }  // namespace besedka::rsdn

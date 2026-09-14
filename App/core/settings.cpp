@@ -8,7 +8,7 @@ module besedka.app;
 
 import std;
 import wxl.core;
-import wxl.text;
+import wxl.unicode;
 import wxl.xml;
 
 namespace besedka::app {
@@ -23,7 +23,7 @@ namespace {
 /// при следующем запуске wxl::xml отвергла бы файл целиком, то есть настройки
 /// пропали бы из-за одной дурной единицы.
 std::string xmlValue(const std::wstring_view value) {
-    return wxl::text::xml_escaped(wxl::text::repaired(value).to_utf8().chars());
+    return wxl::unicode::xml_escaped(wxl::unicode::repaired(value).to_utf8().chars());
 }
 
 std::string readWhole(const std::filesystem::path& path) {
@@ -59,22 +59,22 @@ Settings parseSettings(std::string xml) {
         const wxl::xml::node& root = document.load(std::move(xml));
 
         if (const wxl::xml::node* window = root.child("window")) {
-            if (const std::optional<wxl::text::u8_view> placement = window->attribute("placement"))
+            if (const std::optional<wxl::unicode::u8_view> placement = window->attribute("placement"))
                 settings.windowPlacement = std::wstring(placement->to_utf16().wchars());
         }
 
         if (const wxl::xml::node* layout = root.child("layout")) {
-            if (const std::optional<wxl::text::u8_view> split = layout->attribute("split")) {
+            if (const std::optional<wxl::unicode::u8_view> split = layout->attribute("split")) {
                 // Разбор без локали: в файле точка, что бы ни стояло в
                 // Windows. Непрочитанное число оставляет умолчание -- половину.
-                if (const std::optional<double> value = wxl::text::parse<double>(split->chars()))
+                if (const std::optional<double> value = wxl::unicode::parse<double>(split->chars()))
                     settings.splitFraction = *value;
             }
         }
 
         if (const wxl::xml::node* view = root.child("view")) {
-            if (const std::optional<wxl::text::u8_view> zoom = view->attribute("zoom")) {
-                if (const std::optional<double> value = wxl::text::parse<double>(zoom->chars()))
+            if (const std::optional<wxl::unicode::u8_view> zoom = view->attribute("zoom")) {
+                if (const std::optional<double> value = wxl::unicode::parse<double>(zoom->chars()))
                     settings.zoom = *value;
             }
         }
@@ -88,7 +88,7 @@ Settings parseSettings(std::string xml) {
 std::string formatSettings(const Settings& settings) {
     // text_builder, а не поток: локали у него нет вовсе, и написанное не
     // зависит от того, что стоит в Windows.
-    wxl::text::text_builder<> out;
+    wxl::unicode::text_builder<> out;
 
     out.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
     out.format("<settings version=\"{}\">\n", Settings::kVersion);

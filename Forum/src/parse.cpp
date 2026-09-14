@@ -2,7 +2,7 @@ module besedka.forum;
 
 import std;
 import wxl.json;
-import wxl.text;
+import wxl.unicode;
 
 namespace besedka::forum {
 namespace {
@@ -11,10 +11,10 @@ using wxl::json::value;
 
 /// Текст модели -- UTF-16: дальше он идёт на экран, а там строка и так
 /// UTF-16. Перевод делается здесь, один раз на поле.
-std::wstring wide(const wxl::text::u8_view utf8) {
+std::wstring wide(const wxl::unicode::u8_view utf8) {
     std::wstring out;
 
-    wxl::text::append_utf16(out, utf8);
+    wxl::unicode::append_utf16(out, utf8);
 
     return out;
 }
@@ -23,7 +23,7 @@ std::wstring wide(const value& from) { return wide(from.as_string()); }
 
 int number(const value& from) { return static_cast<int>(from.as_int()); }
 
-std::optional<int> digits(const std::string_view text) { return wxl::text::parse<int>(text); }
+std::optional<int> digits(const std::string_view text) { return wxl::unicode::parse<int>(text); }
 
 }  // namespace
 
@@ -31,7 +31,7 @@ std::optional<int> digits(const std::string_view text) { return wxl::text::parse
 // своя длина, и это единственный формат времени, который приходит с
 // сервера. std::chrono::from_stream отвергнут -- он тянет за собой поток и
 // локаль ради того же самого.
-std::chrono::system_clock::time_point readTimestamp(const wxl::text::u8_view stamp) {
+std::chrono::system_clock::time_point readTimestamp(const wxl::unicode::u8_view stamp) {
     using namespace std::chrono;
 
     const std::string_view text = stamp.chars();

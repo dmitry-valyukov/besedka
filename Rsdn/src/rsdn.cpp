@@ -6,7 +6,7 @@ import std;
 import wxl.core;
 import wxl.highlight;
 import wxl.html;
-import wxl.text;
+import wxl.unicode;
 import wxl.xml;
 
 namespace besedka::rsdn {
@@ -711,6 +711,6 @@ html::document parse(std::wstring_view input) {
     return std::move(building).finish();
 }
 
-html::document parse(text::u8_view input) { return parse(input.to_utf16().wchars()); }
+html::document parse(unicode::u8_view input) { return parse(input.to_utf16().wchars()); }
 
 }  // namespace besedka::rsdn

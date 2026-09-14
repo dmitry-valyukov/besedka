@@ -11,5 +11,5 @@ wxl_add_gtest(besedka.app.tests
     DEPS
         besedka::app
         besedka::forum
-        wxl::text
+        wxl::unicode
 )

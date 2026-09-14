@@ -39,12 +39,12 @@ wxl_add_module_library(besedka.app STATIC
 add_library(besedka::app ALIAS besedka.app)
 
 # PUBLIC: модель форума стоит в интерфейсе (маршрут несёт форум и тему,
-# списки принимают страницу сообщений), а с ней приезжают wxl::text и
+# списки принимают страницу сообщений), а с ней приезжают wxl::unicode и
 # wxl::core. wxl::xml -- только настройкам, но модуль один, и его читатель
 # XML линкуется вместе с остальным.
 target_link_libraries(besedka.app PUBLIC
     besedka::forum
-    wxl::text
+    wxl::unicode
     wxl::xml
 )
 
@@ -84,7 +84,7 @@ add_executable(Besedka WIN32
 
 target_link_libraries(Besedka PRIVATE
     wxl::winui
-    wxl::text
+    wxl::unicode
     besedka::forum
     besedka::app
 )

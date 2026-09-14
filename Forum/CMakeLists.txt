@@ -25,11 +25,11 @@ add_library(besedka::forum ALIAS besedka.forum)
 
 # PUBLIC у первых трёх: они видны в интерфейсе модуля -- будущее из
 # wxl.async, дерево из wxl.json (его же :parse принимает параметром),
-# проверенный текст из wxl.text.
+# проверенный текст из wxl.unicode.
 target_link_libraries(besedka.forum PUBLIC
     wxl::async
     wxl::json
-    wxl::text
+    wxl::unicode
 )
 
 # А это -- только реализации: заголовки winrt/Windows.* включает
@@ -48,7 +48,7 @@ besedka_consumes_wxl(forum-probe)
 # заводит апартамент STA сама, потому что дальше в него возвращаются ответы.
 target_link_libraries(forum-probe PRIVATE
     besedka::forum
-    wxl::text
+    wxl::unicode
     Microsoft::CppWinRT
     WindowsApp.lib
 )

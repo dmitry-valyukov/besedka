@@ -4,5 +4,5 @@ wxl_add_gtest(besedka.rsdn.tests
         rsdn_test.cpp
     DEPS
         besedka::rsdn
-        wxl::text
+        wxl::unicode
 )
