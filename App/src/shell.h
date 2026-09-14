@@ -97,19 +97,19 @@ private:
     /// превращаться в переход.
     bool selectingTab_ = false;
 
-    wxl::Nullable<wxl::Grid> root_ = nullptr;
-    wxl::Nullable<wxl::Border> topBar_ = nullptr;
-    wxl::Nullable<wxl::Grid> crumbs_ = nullptr;
-    wxl::Nullable<wxl::Border> tabsBar_ = nullptr;
-    wxl::Nullable<wxl::Border> statusBar_ = nullptr;
-    wxl::Nullable<wxl::SelectorBar> tabs_ = nullptr;
-    wxl::Nullable<wxl::TextBlock> status_ = nullptr;
-    wxl::Nullable<wxl::Border> dot_ = nullptr;
-    wxl::Nullable<wxl::Button> back_ = nullptr;
-    wxl::Nullable<wxl::Button> forward_ = nullptr;
-    wxl::Nullable<wxl::Button> refresh_ = nullptr;
-    wxl::Nullable<wxl::ProgressRing> ring_ = nullptr;
-    wxl::Nullable<wxl::Button> theme_ = nullptr;
+    wxl::core::nullable<wxl::Grid> root_ = nullptr;
+    wxl::core::nullable<wxl::Border> topBar_ = nullptr;
+    wxl::core::nullable<wxl::Grid> crumbs_ = nullptr;
+    wxl::core::nullable<wxl::Border> tabsBar_ = nullptr;
+    wxl::core::nullable<wxl::Border> statusBar_ = nullptr;
+    wxl::core::nullable<wxl::SelectorBar> tabs_ = nullptr;
+    wxl::core::nullable<wxl::TextBlock> status_ = nullptr;
+    wxl::core::nullable<wxl::Border> dot_ = nullptr;
+    wxl::core::nullable<wxl::Button> back_ = nullptr;
+    wxl::core::nullable<wxl::Button> forward_ = nullptr;
+    wxl::core::nullable<wxl::Button> refresh_ = nullptr;
+    wxl::core::nullable<wxl::ProgressRing> ring_ = nullptr;
+    wxl::core::nullable<wxl::Button> theme_ = nullptr;
 };
 
 }  // namespace besedka::app

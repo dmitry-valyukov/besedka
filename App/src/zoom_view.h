@@ -48,7 +48,7 @@ private:
     /// Сколько раз ChangeView отказал на этом масштабе.
     int retries_ = 0;
 
-    wxl::Nullable<wxl::ScrollViewer> root_ = nullptr;
+    wxl::core::nullable<wxl::ScrollViewer> root_ = nullptr;
 };
 
 }  // namespace besedka::app

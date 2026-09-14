@@ -31,7 +31,7 @@ std::string readWhole(const std::filesystem::path& path) {
 
     if (!in.opened()) return {};   // первого запуска ещё не было
 
-    const std::optional<std::uint64_t> size = in.size();
+    const wxl::core::nullable<std::uint64_t> size = in.size();
 
     // Настройки -- двести байт. Файл в мегабайт означает, что это не наш файл,
     // и разбирать его незачем.

@@ -59,8 +59,8 @@ private:
     wxl::UIElement messageCard(const forum::Message& message, int depth,
                                const std::chrono::time_zone& zone);
 
-    wxl::Nullable<wxl::Grid> root_ = nullptr;
-    wxl::Nullable<wxl::StackPanel> messages_ = nullptr;
+    wxl::core::nullable<wxl::Grid> root_ = nullptr;
+    wxl::core::nullable<wxl::StackPanel> messages_ = nullptr;
 
     /// Чья тема заняла экран; пусто, пока ничья.
     std::optional<int> topicId_;

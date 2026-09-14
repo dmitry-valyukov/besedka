@@ -66,8 +66,8 @@ private:
     // быстром движении.
     bool dragging_ = false;
 
-    wxl::Nullable<wxl::Grid> root_ = nullptr;
-    wxl::Nullable<wxl::Border> splitter_ = nullptr;
+    wxl::core::nullable<wxl::Grid> root_ = nullptr;
+    wxl::core::nullable<wxl::Border> splitter_ = nullptr;
 };
 
 }  // namespace besedka::app

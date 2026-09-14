@@ -61,8 +61,8 @@ private:
     /// Открыть форум по идентификатору -- общее тело обоих щелчков.
     void openById(int32_t id);
 
-    wxl::Nullable<wxl::Grid> root_ = nullptr;
-    wxl::Nullable<wxl::StackPanel> groups_ = nullptr;
+    wxl::core::nullable<wxl::Grid> root_ = nullptr;
+    wxl::core::nullable<wxl::StackPanel> groups_ = nullptr;
 
     /// Форумы, по которым построена нынешняя витрина: строка кнопки держит
     /// не сам форум, а его место здесь.
