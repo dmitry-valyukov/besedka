@@ -39,14 +39,18 @@ wxl_add_module_library(besedka.app STATIC
 add_library(besedka::app ALIAS besedka.app)
 
 # PUBLIC: модель форума стоит в интерфейсе (маршрут несёт форум и тему,
-# списки принимают страницу сообщений), а с ней приезжают wxl::text и
-# wxl::core. wxl::xml -- только настройкам, но модуль один, и его читатель
+# списки принимают страницу сообщений), а с ней приезжает wxl::core.
+# wxl::xml -- только настройкам, но модуль один, и его читатель
 # XML линкуется вместе с остальным.
 target_link_libraries(besedka.app PUBLIC
     besedka::forum
-    wxl::text
+    wxl::core
     wxl::xml
 )
+
+# Только внутри: построитель текста собирает settings.xml в settings.cpp и
+# наружу не выходит.
+target_link_libraries(besedka.app PRIVATE wxl::fmt)
 
 # Каталог данных спрашивается у оболочки (SHGetKnownFolderPath).
 target_link_libraries(besedka.app PRIVATE shell32)
@@ -84,7 +88,6 @@ add_executable(Besedka WIN32
 
 target_link_libraries(Besedka PRIVATE
     wxl::winui
-    wxl::text
     besedka::forum
     besedka::app
 )
