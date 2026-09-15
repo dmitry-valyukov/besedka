@@ -48,6 +48,10 @@ target_link_libraries(besedka.app PUBLIC
     wxl::xml
 )
 
+# Только внутри: построитель текста собирает settings.xml в settings.cpp и
+# наружу не выходит.
+target_link_libraries(besedka.app PRIVATE wxl::fmt)
+
 # Каталог данных спрашивается у оболочки (SHGetKnownFolderPath).
 target_link_libraries(besedka.app PRIVATE shell32)
 

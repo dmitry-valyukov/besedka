@@ -55,6 +55,12 @@ if(NOT TARGET wxl::core)
     add_subdirectory("${BESEDKA_WXL_ROOT}/wxl.core/src" "${CMAKE_BINARY_DIR}/wxl.core" EXCLUDE_FROM_ALL)
 endif()
 
+# Построитель текста поверх fmt: модуль отдельный, чтобы ядро не зависело от
+# внешнего кода, а имена остались в wxl::core. Нужен настройкам и журналу.
+if(NOT TARGET wxl::fmt)
+    add_subdirectory("${BESEDKA_WXL_ROOT}/wxl.fmt/src" "${CMAKE_BINARY_DIR}/wxl.fmt" EXCLUDE_FROM_ALL)
+endif()
+
 # Будущее (wxl::future), которым транспорт отдаёт ответ, и всё, на чём оно
 # стоит.
 if(NOT TARGET wxl::async)
