@@ -17,7 +17,7 @@
 //  - :lists    -- что показывают списки: группы витрины, глубины ответов;
 //  - :geometry -- окно под картинку заставки.
 //
-// Как это устроено целиком -- docs/architecture.md.
+// Как это устроено целиком -- .claude/architecture.md.
 
 export module besedka.app;
 
