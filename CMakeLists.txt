@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.28)
 # знает UUID, привязанный к версии CMake, — включаем его оттуда, чтобы не
 # заводить второе место, где этот UUID придётся обновлять.
 set(BESEDKA_WXL_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../wxl" CACHE PATH
-    "Корень дерева wxl (даёт wxl::unicode, wxl::rsdn, wxl::winui)")
+    "Корень дерева wxl (даёт wxl::core, wxl::rsdn, wxl::winui)")
 
 if(NOT EXISTS "${BESEDKA_WXL_ROOT}/cmake/wxl_import_std_gate.cmake")
     message(FATAL_ERROR
@@ -53,9 +53,6 @@ include("${BESEDKA_WXL_CMAKE_DIR}/wxl_helpers.cmake")
 
 if(NOT TARGET wxl::core)
     add_subdirectory("${BESEDKA_WXL_ROOT}/wxl.core/src" "${CMAKE_BINARY_DIR}/wxl.core" EXCLUDE_FROM_ALL)
-endif()
-if(NOT TARGET wxl::unicode)
-    add_subdirectory("${BESEDKA_WXL_ROOT}/wxl.unicode/src" "${CMAKE_BINARY_DIR}/wxl.unicode" EXCLUDE_FROM_ALL)
 endif()
 
 # Будущее (wxl::future), которым транспорт отдаёт ответ, и всё, на чём оно

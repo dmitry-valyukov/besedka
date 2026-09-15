@@ -9,7 +9,7 @@
 
 import besedka.app;
 import besedka.forum;
-import wxl.unicode;
+import wxl.core;
 
 using namespace besedka;
 using namespace besedka::app;
@@ -50,9 +50,9 @@ TEST(format, a_message_carries_its_full_date) {
 
 TEST(format, a_refusal_is_told_in_words_by_its_kind) {
     const auto unreachable =
-        std::make_exception_ptr(forum::HttpError(0, wxl::unicode::repaired(L"нет сети")));
+        std::make_exception_ptr(forum::HttpError(0, wxl::core::repaired(L"нет сети")));
     const auto refused =
-        std::make_exception_ptr(forum::HttpError(503, wxl::unicode::repaired(L"сервер ответил 503")));
+        std::make_exception_ptr(forum::HttpError(503, wxl::core::repaired(L"сервер ответил 503")));
     const auto other = std::make_exception_ptr(std::runtime_error("whatever"));
 
     EXPECT_EQ(reasonOf(unreachable), L"Сервер недоступен: нет сети");

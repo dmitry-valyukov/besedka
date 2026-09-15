@@ -2,7 +2,7 @@ module besedka.app;
 
 import std;
 import besedka.forum;
-import wxl.unicode;
+import wxl.core;
 
 namespace besedka::app {
 

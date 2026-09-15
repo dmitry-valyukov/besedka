@@ -13,7 +13,7 @@
 
 import besedka.forum;
 import wxl.json;
-import wxl.unicode;
+import wxl.core;
 
 using namespace besedka;
 using namespace std::chrono;

@@ -22,7 +22,7 @@ export module besedka.forum:transport;
 
 import std;
 import wxl.async;
-import wxl.unicode;
+import wxl.core;
 
 export namespace besedka::forum {
 
@@ -45,7 +45,7 @@ struct Response {
 /// ноль, потому что кода в нём и не было.
 class HttpError : public std::runtime_error {
 public:
-    HttpError(int status, wxl::unicode::u16_text said)
+    HttpError(int status, wxl::core::u16_text said)
         : std::runtime_error(status == 0 ? "network failure"
                                          : std::format("http status {}", status)),
           status_(status), said_(std::move(said)) {}
@@ -61,11 +61,11 @@ public:
     /// `what()` при этом нарочно английский и без текста снаружи («http status
     /// 500», «network failure»): у него тогда вовсе не возникает вопроса о
     /// кодировке, а общий обработчик и отладчик всё равно что-то видят.
-    const wxl::unicode::u16_text& said() const noexcept { return said_; }
+    const wxl::core::u16_text& said() const noexcept { return said_; }
 
 private:
     int status_;
-    wxl::unicode::u16_text said_;
+    wxl::core::u16_text said_;
 };
 
 /// Один разговорчик с сервером, живущий столько же, сколько приложение:

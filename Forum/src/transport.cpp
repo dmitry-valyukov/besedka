@@ -10,7 +10,7 @@ module besedka.forum;
 
 import std;
 import wxl.async;
-import wxl.unicode;
+import wxl.core;
 
 namespace besedka::forum {
 namespace {
@@ -58,7 +58,7 @@ winrt::fire_and_forget run(HttpClient client, HttpRequestMessage request,
         // правильный. Ниже по программе гарантия едет уже в типе, и никто её
         // не проверяет заново.
         answer.set_exception(std::make_exception_ptr(
-            HttpError(0, wxl::unicode::repaired(broken.message()))));
+            HttpError(0, wxl::core::repaired(broken.message()))));
     } catch (...) {
         answer.set_exception(std::current_exception());
     }
