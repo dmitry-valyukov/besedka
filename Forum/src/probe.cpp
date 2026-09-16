@@ -177,10 +177,6 @@ int main() {
     // сюда C++/WinRT может только через очередь сообщений апартамента.
     winrt::init_apartment(winrt::apartment_type::single_threaded);
 
-    // Пул -- один на процесс и на этом потоке. Без него не разберётся ни
-    // один ответ: дерево JSON живёт в нём.
-    wxl::core::sta_memory_pool pool;
-
     Probe probe;
 
     probe.start();
