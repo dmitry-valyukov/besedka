@@ -1,11 +1,11 @@
-# App -- сама Беседка на wxl.winui, в двух частях.
+# App -- сама Беседка на wxl.ui, в двух частях.
 #
 # core/ -- модуль besedka.app: то, что приложение решает без окон -- маршруты,
 # история переходов, план страниц, настройки, даты, группировка списков. Ни
 # XAML, ни сети; отсюда тесты в tests/.
 #
 # src/ -- исполняемый файл: окно, каркас, экраны и переходы между ними. Он
-# линкуется с wxl::winui, besedka::forum и besedka::app, и больше ничем.
+# линкуется с wxl::ui, besedka::forum и besedka::app, и больше ничем.
 # Доступ к декларативной поверхности не должен стоить приложению разбора
 # проекции cppwinrt, и отсутствие её include-пути здесь -- то, что это
 # гарантирует.
@@ -87,7 +87,7 @@ add_executable(Besedka WIN32
 )
 
 target_link_libraries(Besedka PRIVATE
-    wxl::winui
+    wxl::ui
     besedka::forum
     besedka::app
 )
@@ -130,7 +130,7 @@ endif()
 
 # Win2D (Microsoft.Graphics.Canvas) активируется неупакованно, из своей нативной
 # DLL рядом с exe: ею CompositionWindow грузит картинки задника (TextureCache),
-# и без неё окно падает при создании. Путь объявляет wxl.winui.
+# и без неё окно падает при создании. Путь объявляет wxl.ui.
 set(_besedka_win2d_dll
     "${WXL_WIN2D_DIR}/runtimes/win-x64/native/Microsoft.Graphics.Canvas.dll")
 
