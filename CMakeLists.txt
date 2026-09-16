@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.28)
 # знает UUID, привязанный к версии CMake, — включаем его оттуда, чтобы не
 # заводить второе место, где этот UUID придётся обновлять.
 set(BESEDKA_WXL_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../wxl" CACHE PATH
-    "Корень дерева wxl (даёт wxl::core, wxl::rsdn, wxl::winui)")
+    "Корень дерева wxl (даёт wxl::core, wxl::rsdn, wxl::ui)")
 
 if(NOT EXISTS "${BESEDKA_WXL_ROOT}/cmake/wxl_import_std_gate.cmake")
     message(FATAL_ERROR
@@ -18,7 +18,7 @@ endif()
 
 set(BESEDKA_WXL_CMAKE_DIR "${BESEDKA_WXL_ROOT}/cmake")
 
-# vcpkg — ради cppwinrt: из него и проекция WinUI 3 под wxl.winui, и заголовки
+# vcpkg — ради cppwinrt: из него и проекция WinUI 3 под wxl.ui, и заголовки
 # пространств Windows.*, которыми Беседка ходит в сеть. До project(), потому
 # что ставит CMAKE_TOOLCHAIN_FILE, а его после первого project() уже никто не
 # читает.
@@ -76,7 +76,7 @@ if(NOT TARGET wxl::json)
     add_subdirectory("${BESEDKA_WXL_ROOT}/wxl.json/src" "${CMAKE_BINARY_DIR}/wxl.json" EXCLUDE_FROM_ALL)
 endif()
 
-# Семейство разметок -- их требует wxl.winui: контролы HtmlBlock, BbBlock и
+# Семейство разметок -- их требует wxl.ui: контролы HtmlBlock, BbBlock и
 # RsdnBlock линкуют свои парсеры. Показ сообщения стоит на последнем: ради
 # него Беседка и заводится.
 if(NOT TARGET wxl::html)
@@ -92,12 +92,12 @@ if(NOT TARGET wxl::rsdn)
     add_subdirectory("${BESEDKA_WXL_ROOT}/wxl.rsdn/src" "${CMAKE_BINARY_DIR}/wxl.rsdn" EXCLUDE_FROM_ALL)
 endif()
 
-# wxl.winui -- проекция WinUI 3, на которой стоит приложение. Здесь, в
+# wxl.ui -- проекция WinUI 3, на которой стоит приложение. Здесь, в
 # отличие от модулей выше, берётся корневой CMakeLists модуля: он и есть весь
 # модуль, а генератор с его winmd живёт отдельной целью в дереве wxl и сюда
 # не приезжает.
-if(WIN32 AND NOT TARGET wxl::winui)
-    add_subdirectory("${BESEDKA_WXL_ROOT}/wxl.winui" "${CMAKE_BINARY_DIR}/wxl.winui" EXCLUDE_FROM_ALL)
+if(WIN32 AND NOT TARGET wxl::ui)
+    add_subdirectory("${BESEDKA_WXL_ROOT}/wxl.ui" "${CMAKE_BINARY_DIR}/wxl.ui" EXCLUDE_FROM_ALL)
 endif()
 
 # Цель, чьи исходники видят заголовки wxl, компилирует их `import std;` сама:
