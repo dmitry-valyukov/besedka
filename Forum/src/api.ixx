@@ -3,8 +3,8 @@
 // только адреса и склейка.
 //
 // Устройство взято у jana (`M:\source\jana`, api/RsdnApi.kt): те же шесть
-// запросов, те же параметры. Разошлись в одном, и это записано в
-// .claude/decisions.md: тело сообщения запрашивается сырым (formatBody=false),
+// запросов, те же параметры. Разошлись в одном: тело сообщения
+// запрашивается сырым (formatBody=false),
 // потому что разбирает его wxl::rsdn, а не сервер.
 //
 // **Откуда звать.** С потока, которому принадлежит пул STA, -- то есть с
@@ -28,8 +28,7 @@ import wxl.async;
 
 export namespace besedka::forum {
 
-/// Адрес сервера по умолчанию. REST, а не старый SOAP: почему -- в
-/// .claude/decisions.md.
+/// Адрес сервера по умолчанию. REST, а не старый SOAP.
 inline constexpr std::wstring_view rsdnServer = L"https://api.rsdn.org";
 
 class Api {

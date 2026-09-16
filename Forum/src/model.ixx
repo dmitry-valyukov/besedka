@@ -107,7 +107,7 @@ struct Message {
     MessageInfo info;
 
     /// Тело: разметка автора при `formatBody=false`, серверный HTML при
-    /// `formatBody=true`. Беседка просит первое -- см. .claude/decisions.md.
+    /// `formatBody=true`. Беседка просит первое.
     std::wstring body;
 
     /// Тело собрано сервером в HTML. Ложь -- значит, это разметка автора, и
