@@ -40,6 +40,10 @@ public:
     /// раз: дальше меняется не содержимое окна, а середина каркаса.
     const wxl::UIElement& root() const { return root_.value(); }
 
+    /// Полоса верхней панели, за которую таскают окно: её отдают окну как
+    /// заголовок (`setTitleBar`).
+    const wxl::UIElement& titleBar() const { return titleBar_.value(); }
+
     /// Заставка: одна на всё окно и без панелей. Жать «обновить» и
     /// переключать вкладки, пока не прочитан первый ответ, нечего; полоса
     /// состояния пересказывала бы своими словами то, что уже написано на
@@ -99,6 +103,7 @@ private:
 
     wxl::core::nullable<wxl::Grid> root_ = nullptr;
     wxl::core::nullable<wxl::Border> topBar_ = nullptr;
+    wxl::core::nullable<wxl::TitleBar> titleBar_ = nullptr;
     wxl::core::nullable<wxl::Grid> crumbs_ = nullptr;
     wxl::core::nullable<wxl::Border> tabsBar_ = nullptr;
     wxl::core::nullable<wxl::Border> statusBar_ = nullptr;

@@ -37,7 +37,6 @@ std::wstring glyph_of(wchar_t code) { return std::wstring(1, code); }
 // Числа из jana (`ui/components/MainTopAppBar.kt`, `MainBottomBar.kt`,
 // `StatusBar.kt`) и из шкалы Material 3, на которой она стоит.
 constexpr double kBarPaddingX = 12;    // TopAppBar: отступ по краям
-constexpr double kBarPaddingY = 6;
 constexpr double kTitleSize = 20;      // Material 3 titleLarge
 constexpr double kStatusSize = 11;     // Material 3 labelSmall
 constexpr double kIconSide = 18;       // IconButton: значок внутри
@@ -86,11 +85,16 @@ bool isMinusKey(const VirtualKey key) { return static_cast<int>(key) == VK_OEM_M
 }  // namespace
 
 Shell::Shell() {
-    // ---- верхняя панель ----
+    // ---- верхняя панель: она же заголовок окна ----
     //
     // Порт MainTopAppBar: слева «назад» и «вперёд», имя форума и кружок
     // состояния; справа -- обновление, тема, панель пользователя и
     // «О программе», ровно в этом порядке.
+    //
+    // Раскладывает её контрол TitleBar -- тот, что Windows App SDK даёт
+    // своему окну под заголовок: он оставляет место под кнопки окна и полосу,
+    // за которую окно таскают всегда, а над кнопками внутри себя вырезает
+    // сквозные области, иначе щелчок по ним взяло бы перетаскивание окна.
     back_ = iconButton(kBack, L"Назад", [this] { if (onBack) onBack(); });
     forward_ = iconButton(kForward, L"Вперёд", [this] { if (onForward) onForward(); });
 
@@ -137,7 +141,6 @@ Shell::Shell() {
     // именем форума и кнопками. Звенья кладёт setBreadcrumb: их число
     // меняется от страницы к странице.
     crumbs_ = Grid{
-        column = 4,
         vAlign.center,
         Margin{24, 0, 16, 0},
     };
@@ -164,43 +167,54 @@ Shell::Shell() {
         },
     };
 
+    // Путь -- в середине, между заголовками; TitleBar ставит его по центру.
+    // Имени приложения в полосе нет, а в поле Title его не пишем: TitleBar
+    // переписал бы им текст окна, который Windows показывает на панели задач.
+    titleBar_ = TitleBar{
+        leftHeader =
+            Grid{
+                columnDefinitions = L"auto,auto,auto,auto",
+                Margin{kBarPaddingX - 2, 0, 0, 0},
+
+                Grid{column = 0, back_.value()},
+                Grid{column = 1, forward_.value()},
+
+                // Имя форума, а не приложения -- то же, что у jana, чей форум
+                // мы читаем.
+                TextBlock{
+                    column = 2,
+                    L"RSDN",
+                    fontSize = kTitleSize,
+                    FontWeight{600},
+                    vAlign.center,
+                    Margin{8, 0, 0, 0},
+                    foreground = palette.text,
+                },
+                dot_.value(),
+            },
+        content = crumbs_.value(),
+        rightHeader =
+            Grid{
+                columnDefinitions = L"auto,auto,auto,auto",
+
+                Grid{
+                    column = 0,
+                    vAlign.center,
+                    refresh_.value(),
+                    ring_.value(),
+                },
+                Grid{column = 1, theme},
+                Grid{column = 2, user},
+                Grid{column = 3, about},
+            },
+    };
+
     topBar_ = Border{
         row = 0,
         background = palette.bar,
         borderBrush = palette.divider,
         BorderThickness{0, 0, 0, 1},
-        Padding{kBarPaddingX, kBarPaddingY},
-
-        Grid{
-            columnDefinitions = L"auto,auto,auto,auto,*,auto,auto,auto,auto",
-
-            Grid{column = 0, back_.value()},
-            Grid{column = 1, forward_.value()},
-
-            // Имя форума, а не приложения: имя приложения написано в
-            // заголовке окна, а здесь -- то же, что у jana, чей форум мы
-            // читаем.
-            TextBlock{
-                column = 2,
-                L"RSDN",
-                fontSize = kTitleSize,
-                FontWeight{600},
-                vAlign.center,
-                Margin{8, 0, 0, 0},
-                foreground = palette.text,
-            },
-            dot_.value(),
-            crumbs_.value(),
-            Grid{
-                column = 5,
-                vAlign.center,
-                refresh_.value(),
-                ring_.value(),
-            },
-            Grid{column = 6, theme},
-            Grid{column = 7, user},
-            Grid{column = 8, about},
-        },
+        titleBar_.value(),
     };
 
     // ---- вкладки внизу ----
