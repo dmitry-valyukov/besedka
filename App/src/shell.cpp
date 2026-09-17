@@ -167,54 +167,59 @@ Shell::Shell() {
         },
     };
 
+    leftHeader_ = Grid{
+        columnDefinitions = L"auto,auto,auto,auto",
+        Margin{kBarPaddingX - 2, 0, 0, 0},
+
+        Grid{column = 0, back_.value()},
+        Grid{column = 1, forward_.value()},
+
+        // Имя форума, а не приложения -- то же, что у jana, чей форум мы
+        // читаем.
+        TextBlock{
+            column = 2,
+            L"RSDN",
+            fontSize = kTitleSize,
+            FontWeight{600},
+            vAlign.center,
+            Margin{8, 0, 0, 0},
+            foreground = palette.text,
+        },
+        dot_.value(),
+    };
+
+    rightHeader_ = Grid{
+        columnDefinitions = L"auto,auto,auto,auto",
+
+        Grid{
+            column = 0,
+            vAlign.center,
+            refresh_.value(),
+            ring_.value(),
+        },
+        Grid{column = 1, theme},
+        Grid{column = 2, user},
+        Grid{column = 3, about},
+    };
+
     // Путь -- в середине, между заголовками; TitleBar ставит его по центру.
     // Имени приложения в полосе нет, а в поле Title его не пишем: TitleBar
     // переписал бы им текст окна, который Windows показывает на панели задач.
+    // Строкой над каркасом полосу ставит окно, и кнопки окна рядом с ней --
+    // тоже оно; каркас полосу только собирает.
     titleBar_ = TitleBar{
-        leftHeader =
-            Grid{
-                columnDefinitions = L"auto,auto,auto,auto",
-                Margin{kBarPaddingX - 2, 0, 0, 0},
-
-                Grid{column = 0, back_.value()},
-                Grid{column = 1, forward_.value()},
-
-                // Имя форума, а не приложения -- то же, что у jana, чей форум
-                // мы читаем.
-                TextBlock{
-                    column = 2,
-                    L"RSDN",
-                    fontSize = kTitleSize,
-                    FontWeight{600},
-                    vAlign.center,
-                    Margin{8, 0, 0, 0},
-                    foreground = palette.text,
-                },
-                dot_.value(),
-            },
+        background = palette.bar,
+        leftHeader = leftHeader_.value(),
         content = crumbs_.value(),
-        rightHeader =
-            Grid{
-                columnDefinitions = L"auto,auto,auto,auto",
-
-                Grid{
-                    column = 0,
-                    vAlign.center,
-                    refresh_.value(),
-                    ring_.value(),
-                },
-                Grid{column = 1, theme},
-                Grid{column = 2, user},
-                Grid{column = 3, about},
-            },
+        rightHeader = rightHeader_.value(),
     };
 
-    topBar_ = Border{
+    // Черта под заголовком -- первой строкой каркаса: полоса стоит выше, в
+    // строке окна.
+    topDivider_ = Border{
         row = 0,
-        background = palette.bar,
-        borderBrush = palette.divider,
-        BorderThickness{0, 0, 0, 1},
-        titleBar_.value(),
+        height = 1,
+        background = palette.divider,
     };
 
     // ---- вкладки внизу ----
@@ -319,7 +324,7 @@ Shell::Shell() {
                 args.handled(true);
             },
 
-        topBar_.value(),
+        topDivider_.value(),
         tabsBar_.value(),
         statusBar_.value(),
     };
@@ -337,11 +342,20 @@ void Shell::setMiddle(const Middle what, const UIElement& element) {
 
     middle_ = what;
 
-    const Visibility chrome = what == Middle::pages ? Visibility::Visible : Visibility::Collapsed;
+    const bool pages = what == Middle::pages;
+    const Visibility chrome = pages ? Visibility::Visible : Visibility::Collapsed;
 
-    topBar_.value().visibility(chrome);
+    topDivider_.value().visibility(chrome);
     tabsBar_.value().visibility(chrome);
     statusBar_.value().visibility(chrome);
+
+    // Полоса заголовка на заставке остаётся, но пустой и прозрачной: за неё
+    // таскают окно, и рядом с ней стоят кнопки окна -- скрытая полоса убрала
+    // бы и их.
+    leftHeader_.value().visibility(chrome);
+    crumbs_.value().visibility(chrome);
+    rightHeader_.value().visibility(chrome);
+    titleBar_.value().background(pages ? Brush(palette.bar) : Brush(palette.transparent));
 }
 
 void Shell::setBreadcrumb(const std::span<const std::wstring> crumbs) {

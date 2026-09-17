@@ -31,6 +31,7 @@ import besedka.app;
 import besedka.forum;
 
 using namespace wxl;
+using namespace wxl::dsl;
 
 namespace {
 
@@ -66,21 +67,12 @@ std::filesystem::path exeDirectory() {
 
 /// Приложение целиком. Один объект на куче: обработчики окна и каркаса держат
 /// `this`, а не по указателю на каждого, и порядок жизни задан порядком
-/// полей -- переходы вместе с экранами разрушаются раньше каркаса, каркас
-/// раньше окна.
+/// полей. Окно -- последним: в его скобках уже подписаны обработчики, которые
+/// зовут настройки, каркас и переходы, и всё это к тому времени построено.
 struct Besedka {
-    // Своё окно верхнего уровня на композиторе, а не генерируемое wxl::Window.
-    // Две причины, и обе про задник. Первая -- он тут вообще виден: XAML
-    // приходит в это окно прозрачным островом, и картинка сцены стоит ЗА
-    // страницей, а не только в просвете, который остров не успел закрасить.
-    // Вторая -- у окна нет поверхности перенаправления
-    // (WS_EX_NOREDIRECTIONBITMAP), значит нечему и белеть при быстрой растяжке
-    // за угол.
-    CompositionWindow window{L"Беседка", SizeInt32{820, 560}};
-
     std::filesystem::path assets = exeDirectory() / L"Assets";
 
-    SettingsWriter settings{window.dispatcherQueue(), loadSettings()};
+    SettingsWriter settings{DispatcherQueue::getForCurrentThread(), loadSettings()};
     forum::Api api;
     Shell shell;
     Navigator navigator{api, shell, assets};
@@ -89,6 +81,53 @@ struct Besedka {
     // делом на месте окна читателя оказались бы пропорции заставки,
     // поставленные нами самими.
     bool restored = false;
+
+    // Своё окно верхнего уровня на композиторе, а не генерируемое wxl::Window.
+    // Две причины, и обе про задник. Первая -- он тут вообще виден: XAML
+    // приходит в это окно прозрачным островом, и картинка сцены стоит ЗА
+    // страницей, а не только в просвете, который остров не успел закрасить.
+    // Вторая -- у окна нет поверхности перенаправления
+    // (WS_EX_NOREDIRECTIONBITMAP), значит нечему и белеть при быстрой растяжке
+    // за угол.
+    CompositionWindow window{
+        title = L"Беседка",
+        minSize = {820, 560},
+
+        // Системный заголовок уходит, и клиентская область поднимается под
+        // него. Верхняя панель каркаса -- заголовок окна: окно ставит её
+        // строкой над каркасом и рядом рисует кнопки окна её высоты. Первым
+        // делом: и пропорции заставки, и первый показ окна считаются уже без
+        // системного заголовка.
+        extendsContentIntoTitleBar = true,
+        titleBar = shell.titleBar(),
+
+        // Масштаб -- всего окна, заголовок и кнопки окна растут вместе со
+        // страницами.
+        zoom = clampedZoom(settings.settings().zoom),
+
+        // Приходит и на перемещение, и на изменение размера, и на смену
+        // представления -- то есть на всё, что запоминается.
+        onGeometryChanged = [this] {
+            if (restored) settings.scheduleSave();
+        },
+
+        // Закрытие -- последний шанс: таймер после него уже не тикнет.
+        onClosed = [this] {
+            if (restored) settings.saveNow();
+        },
+
+        // Ширина, под которую раскладываются страницы. Приходит от окна из
+        // WM_SIZE, то есть до того, как XAML возьмётся за вёрстку. Делится на
+        // масштаб прямо здесь: окно отдаёт физические пиксели, а страницам
+        // нужны логические -- в них меряется текст, ради которого порог и
+        // существует. Масштаб окна в делителе уже есть.
+        onClientSizeChanged =
+            [this](Object const&, ClientSize const& client) {
+                navigator.setWidth(client.size.width / client.scale);
+            },
+
+        shell.root(),
+    };
 
     Besedka();
 
@@ -111,18 +150,6 @@ struct Besedka {
 };
 
 Besedka::Besedka() {
-    // ---- заголовок окна -- верхняя панель каркаса ----
-    //
-    // Те же вызовы, что у Microsoft.UI.Xaml.Window. Системный заголовок
-    // уходит, и клиентская область поднимается под него; панель становится
-    // местом, за которое таскают окно; кнопки окна рисует Windows поверх неё,
-    // высокими -- под высоту полосы TitleBar. Первым делом: и пропорции
-    // заставки ниже, и первый показ окна считаются уже без системного
-    // заголовка.
-    window.extendsContentIntoTitleBar(true);
-    window.appWindow().titleBar().preferredHeightOption(TitleBarHeightOption::Tall);
-    window.setTitleBar(shell.titleBar());
-
     // Окно открывается под заставку -- пропорциями её картинки, а не своими
     // рабочими. Запомненное место ждёт витрины: пока читается список форумов,
     // на экране только картинка, и растягивать её в рабочее окно, чтобы через
@@ -132,17 +159,6 @@ Besedka::Besedka() {
     // ---- место окна и граница страниц: запоминаются одним отложенным письмом ----
     settings.beforeSave = [this](Settings& saved) { saved.windowPlacement = window.placement(); };
 
-    // Приходит и на перемещение, и на изменение размера, и на смену
-    // представления -- то есть на всё, что запоминается.
-    window.onGeometryChanged([this] {
-        if (restored) settings.scheduleSave();
-    });
-
-    // Закрытие -- последний шанс: таймер после него уже не тикнет.
-    window.onClosed([this] {
-        if (restored) settings.saveNow();
-    });
-
     navigator.splitFraction(settings.settings().splitFraction);
 
     navigator.onSplitChanged = [this](const double fraction) {
@@ -150,11 +166,12 @@ Besedka::Besedka() {
         settings.scheduleSave();
     };
 
-    // Масштаб из настроек -- до подписки: восстановленное записывать незачем,
-    // а место окна в тот момент ещё заставочное.
+    // Масштаб из настроек -- до подписки: окну он уже поставлен в его скобках,
+    // а восстановленное записывать незачем.
     navigator.setZoom(settings.settings().zoom);
 
     navigator.onZoomChanged = [this](const double zoom) {
+        window.zoom(zoom);
         settings.settings().zoom = zoom;
         settings.scheduleSave();
     };
@@ -172,16 +189,7 @@ Besedka::Besedka() {
         showBackdrop(kForumBackdrop);
     };
 
-    // ---- ширина, под которую раскладываются страницы ----
-    //
-    // Приходит от окна из WM_SIZE, то есть до того, как XAML возьмётся за
-    // вёрстку. Делится на масштаб прямо здесь: окно отдаёт физические пиксели,
-    // а страницам нужны логические -- в них меряется текст, ради которого
-    // порог и существует.
-    window.onClientSizeChanged([this](const SizeInt32 client, const float scale) {
-        navigator.setWidth(client.width / scale);
-    });
-
+    // Ширина под страницы до первого WM_SIZE, который придёт уже с подпиской.
     navigator.setWidth(window.clientSize().width / window.rasterizationScale());
 
     // ---- то, что на панелях ведёт не к переходу ----
@@ -195,8 +203,6 @@ Besedka::Besedka() {
     shell.onLogin = [this] {
         shell.setStatusText(L"Вход ещё не сделан: за кнопкой будет POST на /connect/token.");
     };
-
-    window.content(shell.root());
 }
 
 void Besedka::shapeForSplash() {

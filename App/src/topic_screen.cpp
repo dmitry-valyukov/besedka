@@ -56,8 +56,6 @@ TopicScreen::TopicScreen() {
     };
 }
 
-void TopicScreen::setZoom(const double factor) { list_->zoom(factor); }
-
 void TopicScreen::setForum(const forum::ForumDescription& forum) {
     forum_ = forum;
 

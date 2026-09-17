@@ -59,8 +59,8 @@ Navigator::Navigator(forum::Api& api, Shell& shell, const std::filesystem::path&
     shell_.onZoomOut = [this] { zoomOut(); };
     shell_.onZoomReset = [this] { zoomReset(); };
 
-    // Щипок на одном экране -- масштаб для всех: он один на приложение.
-    const auto pinched = [this](const double factor) { setZoom(factor); };
+    // Щипок на одном экране -- масштаб всего окна: он один на приложение.
+    const auto pinched = [this](const double factor) { setZoom(zoom_ * factor); };
 
     forums_.onZoomChanged = pinched;
     topics_.onZoomChanged = pinched;
@@ -79,10 +79,6 @@ void Navigator::setZoom(const double factor) {
     if (wanted == zoom_) return;
 
     zoom_ = wanted;
-
-    forums_.setZoom(wanted);
-    topics_.setZoom(wanted);
-    messages_.setZoom(wanted);
 
     shell_.setStatusText(std::format(L"Масштаб {}%", std::lround(wanted * 100)));
 

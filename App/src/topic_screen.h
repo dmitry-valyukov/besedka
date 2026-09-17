@@ -43,13 +43,11 @@ public:
     /// страницы.
     void setSecondary(bool secondary) { secondary_ = secondary; }
 
-    /// Масштаб списка; общий для всех списков, ставит навигатор.
-    void setZoom(double factor);
-
     /// Выбрали тему; форум -- тот, чьи темы показаны.
     std::function<void(const forum::ForumDescription&, const forum::MessageInfo&)> onOpen;
 
-    /// Масштаб сменили щипком или Ctrl+колесом прямо здесь.
+    /// Масштаб окна сменили щипком или Ctrl+колесом прямо здесь -- во столько
+    /// раз.
     std::function<void(double)> onZoomChanged;
 
 private:

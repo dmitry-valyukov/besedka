@@ -67,8 +67,9 @@ public:
     void splitFraction(double value);
     std::function<void(double)> onSplitChanged;
 
-    /// Масштаб списков и сообщений, один на все экраны: ступенями с клавиш
-    /// (см. zoomedIn в besedka.app) или любым числом от щипка.
+    /// Масштаб всего окна -- заголовка, панелей и страниц разом: ступенями с
+    /// клавиш (см. zoomedIn в besedka.app) или любым числом от щипка. Навигатор
+    /// считает его и сообщает, а ставит окну тот, у кого окно.
     void zoomIn();
     void zoomOut();
     void zoomReset();

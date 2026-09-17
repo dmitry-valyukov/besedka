@@ -16,75 +16,35 @@ namespace {
 // Масштаб у ScrollViewer -- float, а у нас double: равенство с допуском.
 constexpr double kSame = 1e-4;
 
-// Сколько раз переспрашивать ChangeView, прежде чем оставить как есть.
-constexpr int kRetries = 3;
-
 bool same(const double left, const double right) noexcept { return std::abs(left - right) < kSame; }
 
 }  // namespace
 
-ZoomView::ZoomView(const FrameworkElement& content) : content_(content) {
+ZoomView::ZoomView(const FrameworkElement& content) {
     root_ = ScrollViewer{
-        wxl::dsl::content = content_,
+        wxl::dsl::content = content,
         zoomMode = ZoomMode::Enabled,
         // Горизонтали нет: содержимое всегда ровно в ширину окна.
         horizontalScrollMode = ScrollMode::Disabled,
         horizontalScrollBarVisibility = ScrollBarVisibility::Disabled,
 
-        onSizeChanged = [this](Object const&, SizeChangedEventArgs&) { apply(); },
-
         onViewChanged =
             [this](Object const&, ScrollViewerViewChangedEventArgs& args) {
-                const double factor = root_.value().zoomFactor();
+                const ScrollViewer& viewer = root_.value();
+                const double factor = viewer.zoomFactor();
 
-                if (!same(factor, zoom_)) {
-                    zoom_ = factor;
-                    apply();
-                }
+                if (args.isIntermediate() || same(factor, 1)) return;
 
-                if (args.isIntermediate() || same(zoom_, reported_)) return;
+                // Сначала назад к единице, потом наружу: масштаб окна,
+                // умноженный на жест, уже включает то, что прокрутка показала.
+                viewer.changeView(std::nullopt, std::nullopt, 1.0f, true);
 
-                reported_ = zoom_;
-
-                if (onZoomChanged) onZoomChanged(zoom_);
+                if (onZoomChanged) onZoomChanged(factor);
             },
     };
 
     root_.value().minZoomFactor(static_cast<float>(kZoomSteps[0]));
     root_.value().maxZoomFactor(static_cast<float>(std::end(kZoomSteps)[-1]));
-}
-
-void ZoomView::zoom(const double factor) {
-    if (same(factor, zoom_)) return;
-
-    zoom_ = factor;
-    reported_ = factor;
-    retries_ = 0;
-
-    apply();
-}
-
-void ZoomView::apply() {
-    const ScrollViewer& viewer = root_.value();
-    const double viewport = viewer.viewportWidth();
-
-    if (viewport <= 0) return;
-
-    // Сначала масштаб, потом ширина. ChangeView молча отказывает, когда у
-    // ScrollViewer не досчитана вёрстка, а смена ширины содержимого как раз
-    // её и пачкает: на левой странице масштаб от щипка справа не приезжал,
-    // и список стоял узким в единице. Отказ всё же случается -- тогда ещё
-    // раз, когда очередь дойдёт до нас, то есть после вёрстки; и не до
-    // бесконечности.
-    if (!same(viewer.zoomFactor(), zoom_) &&
-        !viewer.changeView(std::nullopt, std::nullopt, static_cast<float>(zoom_), true) &&
-        retries_ < kRetries) {
-        ++retries_;
-        DispatcherQueue::getForCurrentThread().tryEnqueue([this] { apply(); });
-        return;
-    }
-
-    content_.width(viewport / zoom_);
 }
 
 }  // namespace besedka::app

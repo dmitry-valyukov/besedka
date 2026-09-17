@@ -47,10 +47,8 @@ public:
     /// `smiles/`.
     void setBaseDirectory(std::wstring_view directory);
 
-    /// Масштаб сообщений; общий для всех списков, ставит навигатор.
-    void setZoom(double factor);
-
-    /// Масштаб сменили щипком или Ctrl+колесом прямо здесь.
+    /// Масштаб окна сменили щипком или Ctrl+колесом прямо здесь -- во столько
+    /// раз.
     std::function<void(double)> onZoomChanged;
 
 private:
