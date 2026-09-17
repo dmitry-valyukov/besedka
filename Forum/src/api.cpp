@@ -25,7 +25,7 @@ auto reading(Read read) {
         if (!answer.ok())
             throw HttpError(
                 answer.status,
-                wxl::core::repaired(std::format(L"сервер ответил {}", answer.status)));
+                wxl::core::unicode::repaired(std::format(L"сервер ответил {}", answer.status)));
 
         wxl::json::document document;
 

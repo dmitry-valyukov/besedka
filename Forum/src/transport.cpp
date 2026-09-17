@@ -58,7 +58,7 @@ winrt::fire_and_forget run(HttpClient client, HttpRequestMessage request,
         // правильный. Ниже по программе гарантия едет уже в типе, и никто её
         // не проверяет заново.
         answer.set_exception(std::make_exception_ptr(
-            HttpError(0, wxl::core::repaired(broken.message()))));
+            HttpError(0, wxl::core::unicode::repaired(broken.message()))));
     } catch (...) {
         answer.set_exception(std::current_exception());
     }
