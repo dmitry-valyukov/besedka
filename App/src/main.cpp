@@ -230,5 +230,5 @@ wxl::Teardown wxl_launched() {
     app->navigator.start();
 
     // Обработчик держит приложение живым ровно столько, сколько живёт wxl.
-    return [app = std::move(app)](Reason) {};
+    return [app = std::move(app)](TeardownReason) {};
 }
