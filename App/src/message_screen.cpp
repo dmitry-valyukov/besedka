@@ -57,8 +57,6 @@ MessageScreen::MessageScreen() {
     };
 }
 
-void MessageScreen::setZoom(const double factor) { list_->zoom(factor); }
-
 void MessageScreen::setBaseDirectory(const std::wstring_view directory) {
     baseDirectory_ = directory;
 }

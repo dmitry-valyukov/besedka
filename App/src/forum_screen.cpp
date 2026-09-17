@@ -88,8 +88,6 @@ ForumScreen::ForumScreen() {
     };
 }
 
-void ForumScreen::setZoom(const double factor) { list_->zoom(factor); }
-
 void ForumScreen::show(const std::vector<forum::ForumDescription>& forums) {
     shown_ = forums;
 

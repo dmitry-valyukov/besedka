@@ -38,12 +38,10 @@ public:
     /// одиночный принадлежит её содержимому. Ставит каркас, раскладывая стопку.
     void setSecondary(bool secondary) { secondary_ = secondary; }
 
-    /// Масштаб списка; общий для всех списков, ставит навигатор.
-    void setZoom(double factor);
-
     std::function<void(const forum::ForumDescription&)> onOpen;
 
-    /// Масштаб сменили щипком или Ctrl+колесом прямо здесь.
+    /// Масштаб окна сменили щипком или Ctrl+колесом прямо здесь -- во столько
+    /// раз.
     std::function<void(double)> onZoomChanged;
 
 private:
