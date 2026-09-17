@@ -14,7 +14,7 @@ using wxl::json::value;
 std::wstring wide(const wxl::core::u8_view utf8) {
     std::wstring out;
 
-    wxl::core::append_utf16(out, utf8);
+    wxl::core::unicode::append_utf16(out, utf8);
 
     return out;
 }

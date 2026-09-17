@@ -23,7 +23,7 @@ namespace {
 /// при следующем запуске wxl::xml отвергла бы файл целиком, то есть настройки
 /// пропали бы из-за одной дурной единицы.
 std::string xmlValue(const std::wstring_view value) {
-    return wxl::core::xml_escaped(wxl::core::repaired(value).to_utf8().chars());
+    return wxl::core::xml_escaped(wxl::core::unicode::repaired(value).to_utf8().chars());
 }
 
 std::string readWhole(const std::filesystem::path& path) {

@@ -33,7 +33,7 @@ namespace {
 using namespace besedka;
 
 std::string utf8(std::wstring_view text) {
-    return std::string(wxl::core::repaired(text).to_utf8().chars());
+    return std::string(wxl::core::unicode::repaired(text).to_utf8().chars());
 }
 
 /// Колонка шириной в символах, а не в байтах: printf считает байты, и от
@@ -41,8 +41,10 @@ std::string utf8(std::wstring_view text) {
 std::string padded(std::wstring_view text, std::size_t width) {
     std::string bytes = utf8(text);
 
-    const std::optional<wxl::core::u8_view> checked = wxl::core::checked(std::string_view(bytes));
-    const std::size_t points = checked ? wxl::core::code_point_count(*checked) : bytes.size();
+    const std::optional<wxl::core::u8_view> checked =
+        wxl::core::unicode::checked(std::string_view(bytes));
+    const std::size_t points =
+        checked ? wxl::core::unicode::code_point_count(*checked) : bytes.size();
 
     if (points < width) bytes.append(width - points, ' ');
 
