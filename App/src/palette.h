@@ -88,13 +88,13 @@ struct Palette {
 
     /// Чем окно закрашено, пока картинка задника не доехала: тёмная земля
     /// обеих картинок, так что подмена не мигает.
-    static constexpr wxl::ARGB backdropTone{0xFF17120Eu};
+    static constexpr wxl::Color backdropTone = wxl::rgb(23, 18, 14);
 
     /// Цитаты по уровням -- те самые три зелёных, что у RSDN в CSS и у jana в
     /// MessageStyle: от тёмного к светлому. По ним в переписке видно не только
     /// что это цитата, но и чья.
-    static constexpr wxl::ARGB quote[3] = {wxl::ARGB{0xFF137900}, wxl::ARGB{0xFF74B967},
-                                           wxl::ARGB{0xFF9FD095}};
+    static constexpr wxl::Color quote[3] = {wxl::rgb(19, 121, 0), wxl::rgb(116, 185, 103),
+                                            wxl::rgb(159, 208, 149)};
 };
 
 inline constexpr Palette palette{};

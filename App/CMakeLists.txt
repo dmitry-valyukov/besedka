@@ -63,7 +63,6 @@ add_executable(Besedka WIN32
     src/settings_writer.cpp
     src/shell.cpp
     src/page_host.cpp
-    src/zoom_view.cpp
     src/splash_screen.cpp
     src/stub_screens.cpp
     src/about_dialog.cpp
@@ -74,7 +73,6 @@ add_executable(Besedka WIN32
     src/settings_writer.h
     src/shell.h
     src/page_host.h
-    src/zoom_view.h
     src/splash_screen.h
     src/stub_screens.h
     src/about_dialog.h

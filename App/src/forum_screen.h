@@ -18,7 +18,6 @@
 #include <vector>
 
 #include "pch.h"
-#include "zoom_view.h"
 
 import besedka.forum;
 
@@ -40,16 +39,8 @@ public:
 
     std::function<void(const forum::ForumDescription&)> onOpen;
 
-    /// Масштаб окна сменили щипком или Ctrl+колесом прямо здесь -- во столько
-    /// раз.
-    std::function<void(double)> onZoomChanged;
-
 private:
     bool secondary_ = false;
-
-    /// Прокрутка с масштабом вокруг списка групп. Появляется в конструкторе,
-    /// когда есть что прокручивать.
-    std::optional<ZoomView> list_;
 
     /// Одна строка витрины. Кнопка, потому что по форуму щёлкают, а всё,
     /// что кнопка умеет сама -- наведение, нажатие, фокус, клавиатура, --

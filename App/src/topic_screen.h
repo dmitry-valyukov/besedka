@@ -13,7 +13,6 @@
 #include <string>
 
 #include "pch.h"
-#include "zoom_view.h"
 
 import besedka.forum;
 
@@ -46,14 +45,8 @@ public:
     /// Выбрали тему; форум -- тот, чьи темы показаны.
     std::function<void(const forum::ForumDescription&, const forum::MessageInfo&)> onOpen;
 
-    /// Масштаб окна сменили щипком или Ctrl+колесом прямо здесь -- во столько
-    /// раз.
-    std::function<void(double)> onZoomChanged;
-
 private:
     bool secondary_ = false;
-
-    std::optional<ZoomView> list_;
 
     wxl::Button topicRow(const forum::MessageInfo& topic,
                          std::chrono::system_clock::time_point now,

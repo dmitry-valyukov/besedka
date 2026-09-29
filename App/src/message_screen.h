@@ -20,7 +20,6 @@
 #include <string>
 
 #include "pch.h"
-#include "zoom_view.h"
 
 import besedka.forum;
 
@@ -47,13 +46,7 @@ public:
     /// `smiles/`.
     void setBaseDirectory(std::wstring_view directory);
 
-    /// Масштаб окна сменили щипком или Ctrl+колесом прямо здесь -- во столько
-    /// раз.
-    std::function<void(double)> onZoomChanged;
-
 private:
-    std::optional<ZoomView> list_;
-
     wxl::UIElement messageCard(const forum::Message& message, int depth,
                                const std::chrono::time_zone& zone);
 

@@ -67,15 +67,6 @@ public:
     void splitFraction(double value);
     std::function<void(double)> onSplitChanged;
 
-    /// Масштаб всего окна -- заголовка, панелей и страниц разом: ступенями с
-    /// клавиш (см. zoomedIn в besedka.app) или любым числом от щипка. Навигатор
-    /// считает его и сообщает, а ставит окну тот, у кого окно.
-    void zoomIn();
-    void zoomOut();
-    void zoomReset();
-    void setZoom(double factor);
-    std::function<void(double)> onZoomChanged;
-
     /// «О программе» над содержимым окна. Версию сервера спрашивает при
     /// каждом показе: диалог открывают редко, а запрос этот дешевле любого
     /// другого.
@@ -115,7 +106,6 @@ private:
 
     History history_;
     double width_ = 0;
-    double zoom_ = kZoomDefault;
 
     PageHost host_;
 

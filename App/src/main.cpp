@@ -22,6 +22,7 @@
 #include <utility>
 
 #include "CompositionWindow.h"
+#include "ZoomEffect.h"
 #include "navigator.h"
 #include "settings_writer.h"
 #include "shell.h"
@@ -65,6 +66,15 @@ std::filesystem::path exeDirectory() {
     return std::filesystem::path(path).parent_path();
 }
 
+/// Масштаб окна -- эффект wxl: клавиши, Ctrl+колесо, жест масштабирования и
+/// flyout с числом. Сохранённый масштаб ставится модели до окна: окно берёт
+/// его, когда эффект присоединяется, и открывается уже в нём.
+ZoomEffect restoredZoom(const double saved) {
+    ZoomEffect zoom;
+    zoom.model().setZoomFactor(saved);
+    return zoom;
+}
+
 /// Приложение целиком. Один объект на куче: обработчики окна и каркаса держат
 /// `this`, а не по указателю на каждого, и порядок жизни задан порядком
 /// полей. Окно -- последним: в его скобках уже подписаны обработчики, которые
@@ -81,6 +91,8 @@ struct Besedka {
     // делом на месте окна читателя оказались бы пропорции заставки,
     // поставленные нами самими.
     bool restored = false;
+
+    ZoomEffect zoom = restoredZoom(settings.settings().zoom);
 
     // Своё окно верхнего уровня на композиторе, а не генерируемое wxl::Window.
     // Две причины, и обе про задник. Первая -- он тут вообще виден: XAML
@@ -103,7 +115,7 @@ struct Besedka {
 
         // Масштаб -- всего окна, заголовок и кнопки окна растут вместе со
         // страницами.
-        zoom = clampedZoom(settings.settings().zoom),
+        zoom,
 
         // Приходит и на перемещение, и на изменение размера, и на смену
         // представления -- то есть на всё, что запоминается.
@@ -166,15 +178,12 @@ Besedka::Besedka() {
         settings.scheduleSave();
     };
 
-    // Масштаб из настроек -- до подписки: окну он уже поставлен в его скобках,
-    // а восстановленное записывать незачем.
-    navigator.setZoom(settings.settings().zoom);
-
-    navigator.onZoomChanged = [this](const double zoom) {
-        window.zoom(zoom);
-        settings.settings().zoom = zoom;
+    // Запоминается ступень, на которую встала модель; восстановленную
+    // (restoredZoom) записывать незачем -- подписка появляется после неё.
+    zoom.model().zoomFactor().on_change([this](double const& factor) noexcept {
+        settings.settings().zoom = factor;
         settings.scheduleSave();
-    };
+    });
 
     // ---- задник ----
     //

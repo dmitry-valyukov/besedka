@@ -43,16 +43,15 @@ TopicScreen::TopicScreen() {
         Margin{kListPadding, 8, kListPadding, kListPadding},
     };
 
-    list_.emplace(topics_.value());
-
-    list_->onZoomChanged = [this](const double factor) {
-        if (onZoomChanged) onZoomChanged(factor);
-    };
-
     // Одна прокрутка и ничего над ней: где мы, говорит строка пути каркаса.
+    // Без горизонтали: содержимое всегда ровно в ширину окна.
     root_ = Grid{
         isTabStop = true,
-        list_->root(),
+        ScrollViewer{
+            wxl::dsl::content = topics_.value(),
+            horizontalScrollMode = ScrollMode::Disabled,
+            horizontalScrollBarVisibility = ScrollBarVisibility::Disabled,
+        },
     };
 }
 
