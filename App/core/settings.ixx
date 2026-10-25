@@ -72,10 +72,4 @@ std::string formatSettings(const Settings& settings);
 /// местом текущий каталог процесса. Отказ системы -- остановка.
 std::filesystem::path dataDirectory();
 
-/// Пишет settings.xml (`path`, его даёт рабочее место) целиком: временный
-/// файл рядом, сброс на носитель, потом замена. Сброс до переименования -- не
-/// педантизм: без него выключение питания оставило бы переименование
-/// сделанным, а содержимое -- нет.
-void saveSettings(const std::filesystem::path& path, const Settings& settings);
-
 }  // namespace besedka::app

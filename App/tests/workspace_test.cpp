@@ -62,6 +62,11 @@ T run(task<T> work) {
     return work.result();
 }
 
+void run(task<> work) {
+    sta_loop::run_until([&] { return work.done(); });
+    work.result();
+}
+
 /// Байты файла, прочитанные обычным способом: проверка того, что записало
 /// рабочее место.
 std::string onDisk(const std::filesystem::path& file) {
@@ -134,7 +139,7 @@ TEST(workspace, a_broken_settings_file_is_named_once_and_kept_beside) {
 
         EXPECT_EQ(onDisk(box.root / L"settings.xml.bad"), brokenSettings) << "копия settings.xml.bad байт в байт";
 
-        saveSettings(ws.settingsPath(), ws.settings);
+        run(ws.saveSettings());
 
         Settings fresh;
         EXPECT_TRUE(readSettings(onDisk(ws.settingsPath()), fresh)) << "первая запись заменила файл целым";

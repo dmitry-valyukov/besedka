@@ -71,8 +71,10 @@ bool readSettings(std::string xml, Settings& into) {
 
 std::string formatSettings(const Settings& settings) {
     // text_builder, а не поток: локали у него нет вовсе, и написанное не
-    // зависит от того, что стоит в Windows. Настройки пишутся с потока
-    // интерфейса (таймер его очереди), поэтому буфер -- из его пула.
+    // зависит от того, что стоит в Windows. Аллокатор -- STA-пул: формирователь
+    // зовёт корутина рабочего места (`Workspace::saveSettings`) до своего
+    // `co_await`, то есть на потоке вызова -- у Беседки интерфейсном; на
+    // рабочий поток уходят только байты.
     wxl::core::text_builder<wxl::core::sta_allocator> out;
 
     out.append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
@@ -100,32 +102,6 @@ std::filesystem::path dataDirectory() {
     ::CoTaskMemFree(folder);
 
     return path / L"Besedka";
-}
-
-void saveSettings(const std::filesystem::path& path, const Settings& settings) {
-    const std::string content = formatSettings(settings);
-
-    std::error_code failed;
-
-    std::filesystem::create_directories(path.parent_path(), failed);
-
-    const std::filesystem::path temporary = std::filesystem::path(path).concat(L".tmp");
-
-    {
-        wxl::core::file file = wxl::core::file::create(temporary.c_str());
-
-        if (!file.opened()) return;
-
-        const std::size_t written =
-            file.write({reinterpret_cast<const std::byte*>(content.data()), content.size()});
-
-        // Сброс на носитель до переименования: иначе выключение питания
-        // оставило бы имя новым, а содержимое старым или нулевым.
-        if (written != content.size() || !file.flush()) return;
-    }
-
-    // WRITE_THROUGH -- чтобы и сама замена дошла до диска.
-    ::MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
 }
 
 }  // namespace besedka::app

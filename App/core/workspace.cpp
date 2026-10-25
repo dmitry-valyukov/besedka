@@ -83,6 +83,14 @@ task<Started> Workspace::start() {
     co_return started;
 }
 
+// ---- запись ---------------------------------------------------------------
+
+task<> Workspace::saveSettings() {
+    std::string xml = formatSettings(settings);
+
+    co_await async_file::write_all(poolPath(settingsPath()), std::move(xml));
+}
+
 // ---- общее ----------------------------------------------------------------
 
 task<> Workspace::keepBrokenCopy(std::filesystem::path file, std::string bytes) {

@@ -18,11 +18,18 @@
 // (reported). Отмена -- деревом источников: у приложения один общий источник
 // `stop`, а ждущий заводит свой, дочерний от него; общий отменяет закрытие
 // окна.
+//
+// Настройки пишет цикл-корутина writeSettings, которую держит приложение
+// (`DeferredWrite`): перемена отодвигает запись, закрытие окна будит цикл на
+// последнюю, а держатель докручивает его, умирая вместе с приложением. Запись
+// токена не берёт и доходит до конца; сбой записи цикл говорит читателю и
+// ждёт дальше -- следующая перемена запишет снова.
 
 // Свои заголовки со стандартными внутри -- до всего, что тянет import
 // wxl.core: заголовок, включённый после импорта, MSVC уже не принимает.
 #include <windows.h>
 
+#include <chrono>
 #include <cstdint>
 #include <exception>
 #include <filesystem>
@@ -30,9 +37,10 @@
 #include <utility>
 
 #include "CompositionWindow.h"
+#include "WaitableTimer.h"
 #include "ZoomEffect.h"
+#include "deferred_write.h"
 #include "navigator.h"
-#include "settings_writer.h"
 #include "shell.h"
 #include "palette.h"
 
@@ -45,6 +53,7 @@ import wxl.async;
 
 using namespace wxl;
 using namespace wxl::dsl;
+using namespace std::chrono_literals;
 
 namespace {
 
@@ -68,6 +77,11 @@ constexpr wchar_t kForumBackdrop[] = L"forum.png";
 // картинка -- сменятся и эти числа.
 constexpr Extent kSplashPicture{1254, 1254};
 
+// Пауза, после которой место окна, граница страниц и масштаб попадают на диск.
+// Окно таскают и границу двигают непрерывно, а писать на каждый пиксель
+// незачем: рука, отпустившая рамку, за это время её не схватит снова.
+constexpr auto kSaveQuiet = 800ms;
+
 /// Каталог рядом с исполняемым файлом. Путь без схемы XAML разрешает именно
 /// оттуда, и ресурсы туда же кладёт сборка.
 std::filesystem::path exeDirectory() {
@@ -78,14 +92,18 @@ std::filesystem::path exeDirectory() {
     return std::filesystem::path(path).parent_path();
 }
 
-/// Приложение целиком. Один объект на куче: обработчики окна и каркаса держат
-/// `this`, а не по указателю на каждого, и порядок жизни задан порядком
-/// полей. Окно -- после всего, что зовут его обработчики: в его скобках уже
-/// подписаны обработчики, которые зовут настройки, каркас и переходы, и всё
-/// это к тому времени построено. После окна -- сообщения (им нужно окно) и
-/// задача запуска. Конструктор диска не трогает и сценариев не запускает:
-/// окно невидимо, настройки -- умолчания; остальное делает запуск (start).
-struct Besedka {
+/// Приложение целиком: поля по значению, в порядке жизни (строятся сверху
+/// вниз, умирают снизу вверх). Одно выделение из STA-пула, счётчик без
+/// interlocked -- поток один. Создаётся `make_refcounted<Besedka>()`; нигде не
+/// передаётся по значению, обработчики окна и каркаса держат голый `this` --
+/// сильная ссылка из своего же поля была бы кольцом. Окно -- после каркаса и
+/// переходов: в его скобках уже подписаны обработчики, которые их зовут. После
+/// окна -- сообщения (им нужно окно), цикл записи настроек (ему нужна очередь
+/// окна, а о сбое он говорит через сообщения; обработчики окна будят его, но
+/// зовутся не раньше, чем приложение построено), подписки и задача запуска.
+/// Конструктор диска не трогает и сценариев не запускает: окно невидимо,
+/// настройки -- умолчания; остальное делает запуск (start).
+struct Besedka final : wxl::core::sta_refcounted, private wxl::core::noncopyable {
     std::filesystem::path assets = exeDirectory() / L"Assets";
 
     /// Общий источник отмены: от него -- дочерние источники сценариев и
@@ -97,10 +115,9 @@ struct Besedka {
     /// наполнит асинхронно -- в этом потоке к диску не обращаются.
     Workspace workspace{dataDirectory()};
 
-    SettingsWriter settings{DispatcherQueue::getForCurrentThread(), workspace};
     forum::Api api;
     Shell shell;
-    Navigator navigator{api, shell, assets};
+    Navigator navigator{api, shell, assets, stop.token()};
 
     // Пока место не восстановлено, ничего и не запоминается: иначе первым же
     // делом на месте окна читателя оказались бы пропорции заставки,
@@ -113,9 +130,10 @@ struct Besedka {
     ZoomEffect zoom;
 
     /// Тема XAML показанного экрана. Диалог -- не часть дерева экрана и его
-    /// темы не наследует: сообщения берут её отсюда. Тема у Беседки пока
-    /// только системная, и экраны своей не задают: все они в теме окна, и
-    /// диалогу она та же -- умолчание.
+    /// темы не наследует: сообщения берут её отсюда. Тема у Беседки пока одна,
+    /// системная, и экраны своей не задают: все они в теме окна, и диалогу она
+    /// та же -- умолчание. Потому поле ни за чем не следует: следовать не за
+    /// чем, пока у экранов нет своих тем.
     wxl::core::observable<wxl::ElementTheme> screenTheme{wxl::ElementTheme::Default};
 
     // Своё окно верхнего уровня на композиторе, а не генерируемое wxl::Window.
@@ -144,16 +162,21 @@ struct Besedka {
         // Приходит и на перемещение, и на изменение размера, и на смену
         // представления -- то есть на всё, что запоминается.
         onGeometryChanged += [this] {
-            if (restored) settings.scheduleSave();
+            if (restored) windowMoved();
         },
 
-        // Закрытие отменяет сценарии и сообщения: ожидание под общим
-        // токеном кончается отменой, открытое сообщение закрывается. И
-        // закрытие -- последний шанс записать настройки: таймер после него
-        // уже не тикнет.
+        // Место окна -- у него самого, пока оно есть: после Closed спросить
+        // будет не у кого. Потом отмена: сценарий, который ждёт под токеном,
+        // кончится на этом ожидании, открытое сообщение и «О программе»
+        // закроются, а запись, которая уже идёт, токена не берёт и доходит до
+        // конца. С общим источником отменён и источник цикла записи, так что
+        // «сейчас» следом будит его на последнюю запись: он просыпается внутри
+        // вызова, снимает настройки этого мига и уходит писать. Дожидается
+        // цикла его держатель, умирая с приложением.
         onClosed += [this] {
+            if (restored) windowMoved();
             stop.cancel();
-            if (restored) settings.saveNow();
+            settingsWrite.signal();
         },
 
         // Ширина, под которую раскладываются страницы. Приходит от окна из
@@ -175,6 +198,16 @@ struct Besedka {
     /// пишет в stderr и вывод отладчика.
     Notices notices{window, screenTheme, stop.token()};
 
+    /// Цикл записи настроек (writeSettings): место окна, граница страниц,
+    /// масштаб. После сообщений -- о сбое записи он говорит через них, и
+    /// последнюю запись делает, умирая, раньше них. Стартует здесь же и сразу
+    /// встаёт на ожидание таймера: лямбда только отдаёт держателю
+    /// корутину-член, а до пробуждения цикл полей не трогает.
+    DeferredWrite settingsWrite{window.dispatcherQueue(), kSaveQuiet, stop.token(),
+                                [this](WaitableTimer& timer, wxl::async::cancellation_token token) {
+                                    return writeSettings(timer, std::move(token));
+                                }};
+
     Besedka();
 
     /// Запуск: настройки, затем показ окна и первый экран. Сценарий: его
@@ -185,7 +218,11 @@ struct Besedka {
     /// прозрачным островом XAML. `backgroundAsync` ставит новую кисть на тот
     /// же самый визуал, вытесняя прежнюю; загрузка асинхронная (Win2D через
     /// wxl::TextureCache), уже прочитанная картинка отдаётся из кэша.
-    void showBackdrop(const wchar_t* name) { window.backgroundAsync(assets / name); }
+    ///
+    /// Картинку ждёт кадр, которого ждёт и выход, -- под общим токеном:
+    /// источник загрузки окно заводит дочерним от `stop`, и закрытие окна её
+    /// отменяет.
+    void showBackdrop(const wchar_t* name) { window.backgroundAsync(assets / name, stop.token()); }
 
     /// Окно под заставку: клиентская область в пропорциях картинки и
     /// настолько большая, насколько её пускает экран. Рамку вычитать не
@@ -209,6 +246,27 @@ struct Besedka {
     /// Тело запуска.
     wxl::async::task<> runStart();
 
+    /// Цикл записи настроек. Его держит settingsWrite.
+    wxl::async::task<> writeSettings(WaitableTimer& timer, wxl::async::cancellation_token token);
+
+    /// Окно сдвинулось или сменило размер: место снимается сейчас, а запись
+    /// отодвигается. Снимается в миг перемены, а не в цикле записи: тот может
+    /// проснуться и после Closed, когда окна уже нет. Его же зовёт закрытие
+    /// окна -- последний раз, пока окно есть.
+    void windowMoved() noexcept;
+
+    /// Масштаб сменился -- запись настроек отодвигается.
+    void zoomChanged(double factor) noexcept;
+
+    // Подписки -- после цикла записи: их слушатели будят его, и держатели
+    // снимаются раньше, чем он умирает.
+
+    /// Масштаб окна (поле модели эффекта); появляется, когда масштаб поставлен
+    /// из настроек (start): прочитанное из файла -- не перемена, которую надо
+    /// записать обратно.
+    using ZoomWatch = wxl::core::change_watch<wxl::core::observable<double const>, &Besedka::zoomChanged>;
+    std::unique_ptr<ZoomWatch> zoomWatch;
+
     // Задачи сценариев -- последними: их тела трогают всё, что выше, и
     // уходят раньше всего. К разрушению приложения они кончились: закрытие
     // окна отменило их ожидания, и выход ждал тел до Teardown.
@@ -223,15 +281,13 @@ Besedka::Besedka() {
     // секунду сменить содержимое, значит показать два разных окна подряд.
     shapeForSplash();
 
-    // ---- место окна и граница страниц: запоминаются одним отложенным письмом ----
+    // ---- граница страниц: запоминается отложенной записью ----
     //
     // Границу, прочитанную из настроек, ставит запуск; отсюда -- та, что
     // двигает читатель.
-    settings.beforeSave = [this](Settings& saved) { saved.windowPlacement = window.placement(); };
-
     navigator.onSplitChanged = [this](const double fraction) {
-        settings.settings().splitFraction = fraction;
-        settings.scheduleSave();
+        workspace.settings.splitFraction = fraction;
+        settingsWrite.restart();
     };
 
     // ---- задник ----
@@ -302,19 +358,46 @@ wxl::async::task<> Besedka::runStart() {
 
     for (const Notice& notice : started.notices) notices.post(notice);
 
-    zoom.model().setZoomFactor(settings.settings().zoom);
-    navigator.splitFraction(settings.settings().splitFraction);
+    zoom.model().setZoomFactor(workspace.settings.zoom);
+    navigator.splitFraction(workspace.settings.splitFraction);
 
     // Запись на диск начинает слушать масштаб только теперь: прочитанное из
     // файла -- не перемена, которую надо записать обратно. Запоминается
     // ступень, на которую встала модель.
-    zoom.model().zoomFactor().on_change([this](double const& factor) noexcept {
-        settings.settings().zoom = factor;
-        settings.scheduleSave();
-    });
+    zoomWatch = std::make_unique<ZoomWatch>(zoom.model().zoomFactor(), *this);
 
     window.activate();
     navigator.start();
+}
+
+/// Настройки целиком. Текст рабочее место собирает в момент вызова, до
+/// ожидания: «сейчас» будит ждущий цикл внутри своего вызова, и на диск уходят
+/// настройки этого мига.
+wxl::async::task<> Besedka::writeSettings(WaitableTimer& timer, wxl::async::cancellation_token token) {
+    for (;;) {
+        co_await timer;
+
+        // Отмена посреди записи -- ещё один круг.
+        bool const last = token.is_canceled();
+
+        try {
+            co_await workspace.saveSettings();
+        } catch (const wxl::async::last_error& failure) {
+            notices.post(noticeOf(L"Не удалось сохранить настройки", workspace.settingsPath().wstring(), failure));
+        }
+
+        if (last) co_return;
+    }
+}
+
+void Besedka::windowMoved() noexcept {
+    workspace.settings.windowPlacement = window.placement();
+    settingsWrite.restart();
+}
+
+void Besedka::zoomChanged(const double factor) noexcept {
+    workspace.settings.zoom = factor;
+    settingsWrite.restart();
 }
 
 void Besedka::shapeForSplash() {
@@ -327,21 +410,25 @@ void Besedka::shapeForSplash() {
 void Besedka::restoreWindowOnce() {
     if (std::exchange(restored, true)) return;
 
-    if (settings.settings().windowPlacement.empty())
+    if (workspace.settings.windowPlacement.empty())
         window.centreWithClientSize({kInitialWidth, kInitialHeight});
     else
-        window.placement(settings.settings().windowPlacement);
+        window.placement(workspace.settings.windowPlacement);
 }
 
 }  // namespace
 
 wxl::Teardown wxl_launched() {
-    auto app = std::make_unique<Besedka>();
+    // Приложение рождается со счётчиком 1, и make_refcounted эту ссылку
+    // принимает, а не добавляет свою.
+    auto const app = wxl::core::make_refcounted<Besedka>();
 
     app->start();
 
-    // Обработчик держит приложение живым ровно столько, сколько живёт wxl;
+    // Обработчик держит приложение до разборки wxl и отпускает до пула STA;
     // задачи сценариев приложение держит само, в своих полях, и они уходят
-    // вместе с ним.
-    return [app = std::move(app)](TeardownReason) {};
+    // вместе с ним. Последнюю запись настроек будит Closed окна, пока окно
+    // ещё есть, а дописать её приложение даёт, умирая: держатель цикла записи
+    // докручивает его, когда обработчик Teardown приложение отпускает.
+    return [app](TeardownReason) {};
 }

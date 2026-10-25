@@ -9,8 +9,8 @@
 // Точка указателя: её отдаёт PointerRoutedEventArgs::getCurrentPoint, а
 // объявлена она здесь -- без этого заголовка тип виден только по имени.
 #include "generated/Microsoft.UI.Input.h"
-// Очередь интерфейсного потока и её таймер: ими откладывается запись
-// настроек.
+// Очередь интерфейсного потока: на ней тикает таймер отложенной записи
+// настроек (DeferredWrite).
 #include "generated/Microsoft.UI.Dispatching.h"
 #include "generated/Microsoft.UI.Xaml.Controls.h"
 #include "generated/Microsoft.UI.Xaml.Media.h"

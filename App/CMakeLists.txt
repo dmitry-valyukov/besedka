@@ -68,7 +68,6 @@ add_executable(Besedka WIN32
     src/main.cpp
     src/navigator.cpp
     src/notices.cpp
-    src/settings_writer.cpp
     src/shell.cpp
     src/page_host.cpp
     src/splash_screen.cpp
@@ -77,9 +76,9 @@ add_executable(Besedka WIN32
     src/forum_screen.cpp
     src/topic_screen.cpp
     src/message_screen.cpp
+    src/deferred_write.h
     src/navigator.h
     src/notices.h
-    src/settings_writer.h
     src/shell.h
     src/page_host.h
     src/splash_screen.h
