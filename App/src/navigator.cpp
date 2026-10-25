@@ -42,6 +42,10 @@ Navigator::Navigator(forum::Api& api, Shell& shell, const std::filesystem::path&
 
     splash_.onRetry = [this] { loadShowcase(); };
 
+    about_.onDismissed = [this] {
+        if (onAboutDismissed) onAboutDismissed();
+    };
+
     forums_.onOpen = [this](const forum::ForumDescription& forum) {
         open(Screen::forums, TopicsRoute{forum});
     };

@@ -26,6 +26,8 @@ wxl_add_module_library(besedka.app STATIC
         core/format.ixx
         core/lists.ixx
         core/geometry.ixx
+        core/notice.ixx
+        core/workspace.ixx
     SRC
         core/route.cpp
         core/history.cpp
@@ -34,6 +36,8 @@ wxl_add_module_library(besedka.app STATIC
         core/format.cpp
         core/lists.cpp
         core/geometry.cpp
+        core/notice.cpp
+        core/workspace.cpp
 )
 
 add_library(besedka::app ALIAS besedka.app)
@@ -41,11 +45,14 @@ add_library(besedka::app ALIAS besedka.app)
 # PUBLIC: модель форума стоит в интерфейсе (маршрут несёт форум и тему,
 # списки принимают страницу сообщений), а с ней приезжает wxl::core.
 # wxl::xml -- только настройкам, но модуль один, и его читатель
-# XML линкуется вместе с остальным.
+# XML линкуется вместе с остальным. wxl::async -- тоже в интерфейсе: рабочее
+# место отдаёт задачи (task), а слова читателю называют сбой операции с
+# файлом (last_error).
 target_link_libraries(besedka.app PUBLIC
     besedka::forum
     wxl::core
     wxl::xml
+    wxl::async
 )
 
 # Только внутри: построитель текста собирает settings.xml в settings.cpp и
@@ -60,6 +67,7 @@ target_link_libraries(besedka.app PRIVATE shell32)
 add_executable(Besedka WIN32
     src/main.cpp
     src/navigator.cpp
+    src/notices.cpp
     src/settings_writer.cpp
     src/shell.cpp
     src/page_host.cpp
@@ -70,6 +78,7 @@ add_executable(Besedka WIN32
     src/topic_screen.cpp
     src/message_screen.cpp
     src/navigator.h
+    src/notices.h
     src/settings_writer.h
     src/shell.h
     src/page_host.h

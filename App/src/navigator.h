@@ -72,6 +72,9 @@ public:
     /// другого.
     void showAbout(const wxl::UIElement& host);
 
+    /// «О программе» закрыт -- сообщения, ждавшие его, могут показаться.
+    std::function<void()> onAboutDismissed;
+
     /// На экране заставка -- окну пора её задник.
     std::function<void()> onSplash;
 

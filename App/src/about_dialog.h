@@ -9,6 +9,7 @@
 // Версия сервера приезжает отдельно и позже: её спрашивают у `/service_info`,
 // и до ответа строчки просто нет -- ровно как у jana, где `serviceInfo?.let`.
 
+#include <functional>
 #include <string>
 #include <string_view>
 
@@ -30,6 +31,9 @@ public:
     /// Строчка про сервер: «API v3.1 [2026-08-30]». Пустая -- значит, сервер
     /// ещё не ответил, и её не видно.
     void setServerLine(std::wstring_view said);
+
+    /// Диалог закрыт: сообщения, ждавшие его, могут показаться.
+    std::function<void()> onDismissed;
 
 private:
     wxl::core::nullable<wxl::ContentDialog> dialog_ = nullptr;

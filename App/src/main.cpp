@@ -11,12 +11,20 @@
 // Запросы задаются отсюда, с потока интерфейса, и сюда же C++/WinRT
 // возвращает ответ -- на том потоке он и разбирается, потому что дерево JSON
 // живёт в пуле STA.
+//
+// Запуск -- сценарий, корутина wxl.async (runStart): файл настроек читает
+// рабочее место операцией wxl, а поток интерфейса тем временем крутит цикл
+// сообщений. Сбой, которого сценарий сам не поймал, -- сообщение читателю
+// (reported). Отмена -- деревом источников: у приложения один общий источник
+// `stop`, а ждущий заводит свой, дочерний от него; общий отменяет закрытие
+// окна.
 
 // Свои заголовки со стандартными внутри -- до всего, что тянет import
 // wxl.core: заголовок, включённый после импорта, MSVC уже не принимает.
 #include <windows.h>
 
 #include <cstdint>
+#include <exception>
 #include <filesystem>
 #include <memory>
 #include <utility>
@@ -28,8 +36,12 @@
 #include "shell.h"
 #include "palette.h"
 
+// Последним из своих: он кончается импортами.
+#include "notices.h"
+
 import besedka.app;
 import besedka.forum;
+import wxl.async;
 
 using namespace wxl;
 using namespace wxl::dsl;
@@ -66,23 +78,26 @@ std::filesystem::path exeDirectory() {
     return std::filesystem::path(path).parent_path();
 }
 
-/// Масштаб окна -- эффект wxl: клавиши, Ctrl+колесо, жест масштабирования и
-/// flyout с числом. Сохранённый масштаб ставится модели до окна: окно берёт
-/// его, когда эффект присоединяется, и открывается уже в нём.
-ZoomEffect restoredZoom(const double saved) {
-    ZoomEffect zoom;
-    zoom.model().setZoomFactor(saved);
-    return zoom;
-}
-
 /// Приложение целиком. Один объект на куче: обработчики окна и каркаса держат
 /// `this`, а не по указателю на каждого, и порядок жизни задан порядком
-/// полей. Окно -- последним: в его скобках уже подписаны обработчики, которые
-/// зовут настройки, каркас и переходы, и всё это к тому времени построено.
+/// полей. Окно -- после всего, что зовут его обработчики: в его скобках уже
+/// подписаны обработчики, которые зовут настройки, каркас и переходы, и всё
+/// это к тому времени построено. После окна -- сообщения (им нужно окно) и
+/// задача запуска. Конструктор диска не трогает и сценариев не запускает:
+/// окно невидимо, настройки -- умолчания; остальное делает запуск (start).
 struct Besedka {
     std::filesystem::path assets = exeDirectory() / L"Assets";
 
-    SettingsWriter settings{DispatcherQueue::getForCurrentThread(), loadSettings()};
+    /// Общий источник отмены: от него -- дочерние источники сценариев и
+    /// сообщений, под токенами которых те ждут. Отменяет его закрытие окна,
+    /// один раз на жизнь приложения: обратно отмену не взять.
+    wxl::async::cancellation_source stop;
+
+    /// Рабочее место: настройки и их файл. Пустое: его наполнит запуск, и
+    /// наполнит асинхронно -- в этом потоке к диску не обращаются.
+    Workspace workspace{dataDirectory()};
+
+    SettingsWriter settings{DispatcherQueue::getForCurrentThread(), workspace};
     forum::Api api;
     Shell shell;
     Navigator navigator{api, shell, assets};
@@ -92,7 +107,16 @@ struct Besedka {
     // поставленные нами самими.
     bool restored = false;
 
-    ZoomEffect zoom = restoredZoom(settings.settings().zoom);
+    /// Масштаб окна -- эффект wxl: клавиши, Ctrl+колесо, жест масштабирования и
+    /// flyout с числом. Сохранённый масштаб ставит модели запуск, прочитав
+    /// настройки, -- до показа окна, так что окно открывается уже в нём.
+    ZoomEffect zoom;
+
+    /// Тема XAML показанного экрана. Диалог -- не часть дерева экрана и его
+    /// темы не наследует: сообщения берут её отсюда. Тема у Беседки пока
+    /// только системная, и экраны своей не задают: все они в теме окна, и
+    /// диалогу она та же -- умолчание.
+    wxl::core::observable<wxl::ElementTheme> screenTheme{wxl::ElementTheme::Default};
 
     // Своё окно верхнего уровня на композиторе, а не генерируемое wxl::Window.
     // Две причины, и обе про задник. Первая -- он тут вообще виден: XAML
@@ -123,8 +147,12 @@ struct Besedka {
             if (restored) settings.scheduleSave();
         },
 
-        // Закрытие -- последний шанс: таймер после него уже не тикнет.
+        // Закрытие отменяет сценарии и сообщения: ожидание под общим
+        // токеном кончается отменой, открытое сообщение закрывается. И
+        // закрытие -- последний шанс записать настройки: таймер после него
+        // уже не тикнет.
         onClosed += [this] {
+            stop.cancel();
             if (restored) settings.saveNow();
         },
 
@@ -141,7 +169,17 @@ struct Besedka {
         shell.root(),
     };
 
+    /// Сообщения читателю -- и о сбоях запуска, и о сбоях сценариев
+    /// (reported). Ответа открытого сообщения ждёт под своим источником,
+    /// дочерним от общего: закрытие окна его закрывает, а пришедшие после --
+    /// пишет в stderr и вывод отладчика.
+    Notices notices{window, screenTheme, stop.token()};
+
     Besedka();
+
+    /// Запуск: настройки, затем показ окна и первый экран. Сценарий: его
+    /// задачу держит поле `starting`, вызов возвращается на первом ожидании.
+    void start();
 
     /// Задник -- один на всё приложение, единственный визуал сцены под
     /// прозрачным островом XAML. `backgroundAsync` ставит новую кисть на тот
@@ -159,6 +197,23 @@ struct Besedka {
     /// Умолчание и запомненное разведены: `placement` молча ничего не делает,
     /// когда разбирать нечего, поэтому первый запуск ставится по центру сам.
     void restoreWindowOnce();
+
+    /// Ведёт сценарий и читает, чем он кончился: отмена -- обычный конец,
+    /// всякий другой сбой, которого сценарий сам не поймал, -- сообщением
+    /// читателю. Задачи сценариев в полях -- это задачи этого чтения.
+    wxl::async::task<> reported(wxl::async::task<> scenario);
+
+    /// Сбой словами читателю. noexcept: сбою самого показа уйти некуда.
+    void reportFailure(std::exception_ptr failure) noexcept;
+
+    /// Тело запуска.
+    wxl::async::task<> runStart();
+
+    // Задачи сценариев -- последними: их тела трогают всё, что выше, и
+    // уходят раньше всего. К разрушению приложения они кончились: закрытие
+    // окна отменило их ожидания, и выход ждал тел до Teardown.
+
+    wxl::async::task<> starting;   ///< запуск (start)
 };
 
 Besedka::Besedka() {
@@ -169,21 +224,15 @@ Besedka::Besedka() {
     shapeForSplash();
 
     // ---- место окна и граница страниц: запоминаются одним отложенным письмом ----
+    //
+    // Границу, прочитанную из настроек, ставит запуск; отсюда -- та, что
+    // двигает читатель.
     settings.beforeSave = [this](Settings& saved) { saved.windowPlacement = window.placement(); };
-
-    navigator.splitFraction(settings.settings().splitFraction);
 
     navigator.onSplitChanged = [this](const double fraction) {
         settings.settings().splitFraction = fraction;
         settings.scheduleSave();
     };
-
-    // Запоминается ступень, на которую встала модель; восстановленную
-    // (restoredZoom) записывать незачем -- подписка появляется после неё.
-    zoom.model().zoomFactor().on_change([this](double const& factor) noexcept {
-        settings.settings().zoom = factor;
-        settings.scheduleSave();
-    });
 
     // ---- задник ----
     //
@@ -206,12 +255,66 @@ Besedka::Besedka() {
     // Над содержимым окна, то есть над островом, в котором оно стоит.
     shell.onAbout = [this] { navigator.showAbout(window.content()); };
 
+    // Сообщение, пришедшее, пока «О программе» открыт, ждёт его закрытия:
+    // XAML не держит двух диалогов разом.
+    navigator.onAboutDismissed = [this] { notices.flush(); };
+
     // Кнопка стоит на своём месте с самого начала, а войти ей пока некуда:
     // один POST на /connect/token -- работа после хранилища, и дверь для
     // него в транспорте уже есть.
     shell.onLogin = [this] {
         shell.setStatusText(L"Вход ещё не сделан: за кнопкой будет POST на /connect/token.");
     };
+}
+
+void Besedka::start() {
+    starting = reported(runStart());
+}
+
+wxl::async::task<> Besedka::reported(wxl::async::task<> scenario) {
+    try {
+        // Как своя, а не присоединением: ожидатель -- сама задача в параметре
+        // кадра, а не временный рядом с ней, который разрушался бы раньше
+        // параметра и уносил бы с собой пометку «её ждут».
+        co_await std::move(scenario);
+    } catch (const wxl::async::operation_canceled_exception&) {
+        // Отмена -- обычный конец: её приносит закрытие окна.
+    } catch (...) {
+        // Через noexcept-показ: сбой самого показа уйти отсюда может только в
+        // эту задачу, а её конца никто не читает, -- он останавливает процесс.
+        reportFailure(std::current_exception());
+    }
+}
+
+void Besedka::reportFailure(std::exception_ptr failure) noexcept {
+    notices.post(noticeOf(std::move(failure)));
+}
+
+/// Окно строится невидимым, а показывается, когда прочитаны настройки:
+/// масштаб, с которым оно открывается, лежит в них, и открыть его сначала в
+/// одном, а потом переставить -- значит показать читателю прыжок. Ждать при
+/// этом нечего: файл настроек читает рабочий поток, а этот тем временем уже
+/// крутит цикл сообщений.
+wxl::async::task<> Besedka::runStart() {
+    // Настройки -- у рабочего места; что при этом не удалось, читатель узнаёт
+    // словами, а запуск идёт дальше с умолчаниями.
+    const Started started = co_await workspace.start();
+
+    for (const Notice& notice : started.notices) notices.post(notice);
+
+    zoom.model().setZoomFactor(settings.settings().zoom);
+    navigator.splitFraction(settings.settings().splitFraction);
+
+    // Запись на диск начинает слушать масштаб только теперь: прочитанное из
+    // файла -- не перемена, которую надо записать обратно. Запоминается
+    // ступень, на которую встала модель.
+    zoom.model().zoomFactor().on_change([this](double const& factor) noexcept {
+        settings.settings().zoom = factor;
+        settings.scheduleSave();
+    });
+
+    window.activate();
+    navigator.start();
 }
 
 void Besedka::shapeForSplash() {
@@ -235,9 +338,10 @@ void Besedka::restoreWindowOnce() {
 wxl::Teardown wxl_launched() {
     auto app = std::make_unique<Besedka>();
 
-    app->window.activate();
-    app->navigator.start();
+    app->start();
 
-    // Обработчик держит приложение живым ровно столько, сколько живёт wxl.
+    // Обработчик держит приложение живым ровно столько, сколько живёт wxl;
+    // задачи сценариев приложение держит само, в своих полях, и они уходят
+    // вместе с ним.
     return [app = std::move(app)](TeardownReason) {};
 }

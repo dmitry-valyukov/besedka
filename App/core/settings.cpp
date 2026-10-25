@@ -26,32 +26,14 @@ std::string xmlValue(const std::wstring_view value) {
     return wxl::core::xml_escaped(wxl::core::unicode::repaired(value).to_utf8().chars());
 }
 
-std::string readWhole(const std::filesystem::path& path) {
-    wxl::core::file in = wxl::core::file::open_read(path.c_str());
-
-    if (!in.opened()) return {};   // первого запуска ещё не было
-
-    const wxl::core::nullable<std::uint64_t> size = in.size();
-
-    // Настройки -- двести байт. Файл в мегабайт означает, что это не наш файл,
-    // и разбирать его незачем.
-    if (!size || *size > 64 * 1024) return {};
-
-    std::string bytes(static_cast<std::size_t>(*size), '\0');
-
-    const std::size_t got = in.read({reinterpret_cast<std::byte*>(bytes.data()), bytes.size()});
-
-    bytes.resize(got);
-
-    return bytes;
-}
-
 }  // namespace
 
-Settings parseSettings(std::string xml) {
-    Settings settings;
+bool readSettings(std::string xml, Settings& into) {
+    if (xml.empty()) return true;   // первого запуска ещё не было
 
-    if (xml.empty()) return settings;
+    // Сперва всё читается в местные, и лишь потом ложится в поля: битый файл
+    // не должен оставить настройки прочитанными наполовину.
+    Settings settings;
 
     try {
         wxl::xml::document document;
@@ -77,10 +59,14 @@ Settings parseSettings(std::string xml) {
                 wxl::core::try_parse(zoom->chars(), settings.zoom);
         }
     } catch (...) {
-        return Settings{};
+        // Битый файл, файл от будущей версии, файл, который правили руками, --
+        // всё это повод открыться со значениями по умолчанию, а не повод не
+        // открыться. Сказать об этом читателю -- дело вызывающего.
+        return false;
     }
 
-    return settings;
+    into = std::move(settings);
+    return true;
 }
 
 std::string formatSettings(const Settings& settings) {
@@ -106,7 +92,8 @@ std::string formatSettings(const Settings& settings) {
 std::filesystem::path dataDirectory() {
     PWSTR folder = nullptr;
 
-    if (FAILED(::SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &folder))) return {};
+    if (FAILED(::SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &folder)))
+        wxl::core::abort("dataDirectory: нет каталога LocalAppData");
 
     std::filesystem::path path{folder};
 
@@ -115,25 +102,7 @@ std::filesystem::path dataDirectory() {
     return path / L"Besedka";
 }
 
-std::filesystem::path settingsPath() {
-    const std::filesystem::path directory = dataDirectory();
-
-    return directory.empty() ? std::filesystem::path{} : directory / L"settings.xml";
-}
-
-Settings loadSettings() {
-    const std::filesystem::path path = settingsPath();
-
-    if (path.empty()) return Settings{};
-
-    return parseSettings(readWhole(path));
-}
-
-void saveSettings(const Settings& settings) {
-    const std::filesystem::path path = settingsPath();
-
-    if (path.empty()) return;
-
+void saveSettings(const std::filesystem::path& path, const Settings& settings) {
     const std::string content = formatSettings(settings);
 
     std::error_code failed;

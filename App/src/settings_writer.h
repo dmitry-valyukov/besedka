@@ -1,5 +1,5 @@
 #pragma once
-// Настройки в памяти и их отложенная запись на диск.
+// Отложенная запись на диск настроек рабочего места.
 //
 // Тянуть рамку окна или границу страниц мышью -- это сотни событий в
 // секунду, а файл переписывается целиком. Поэтому правки копятся, а пишется
@@ -15,14 +15,16 @@ import besedka.app;
 
 namespace besedka::app {
 
+/// Настройки -- у рабочего места, которое живёт дольше: писатель держит его
+/// ссылкой и пишет его настройки в его файл.
 class SettingsWriter {
 public:
-    SettingsWriter(const wxl::DispatcherQueue& queue, Settings settings);
+    SettingsWriter(const wxl::DispatcherQueue& queue, Workspace& workspace);
 
     SettingsWriter(const SettingsWriter&) = delete;
     SettingsWriter& operator=(const SettingsWriter&) = delete;
 
-    Settings& settings() noexcept { return settings_; }
+    Settings& settings() noexcept { return workspace_.settings; }
 
     /// Дописать перед записью то, что известно не настройкам, а окну, --
     /// его место. Спрашивается раз на запись, а не на каждое движение рамки.
@@ -37,7 +39,7 @@ public:
 private:
     void write();
 
-    Settings settings_;
+    Workspace& workspace_;
     wxl::DispatcherQueueTimer timer_;
 };
 

@@ -1,7 +1,5 @@
 #include "settings_writer.h"
 
-#include <utility>
-
 namespace besedka::app {
 
 using namespace wxl;
@@ -14,8 +12,8 @@ constexpr auto kQuiet = std::chrono::milliseconds(800);
 
 }  // namespace
 
-SettingsWriter::SettingsWriter(const DispatcherQueue& queue, Settings settings)
-    : settings_(std::move(settings)), timer_(queue.createTimer()) {
+SettingsWriter::SettingsWriter(const DispatcherQueue& queue, Workspace& workspace)
+    : workspace_(workspace), timer_(queue.createTimer()) {
     timer_.interval(kQuiet);
     timer_.isRepeating(false);
 
@@ -36,9 +34,9 @@ void SettingsWriter::saveNow() {
 }
 
 void SettingsWriter::write() {
-    if (beforeSave) beforeSave(settings_);
+    if (beforeSave) beforeSave(workspace_.settings);
 
-    saveSettings(settings_);
+    saveSettings(workspace_.settingsPath(), workspace_.settings);
 }
 
 }  // namespace besedka::app

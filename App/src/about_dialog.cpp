@@ -38,6 +38,9 @@ AboutDialog::AboutDialog() {
 
     dialog_ = ContentDialog{
         closeButtonText = L"Закрыть",
+        onClosed += [this](ContentDialog const&) {
+            if (onDismissed) onDismissed();
+        },
         content = StackPanel{
             width = kCardWidth,
 
