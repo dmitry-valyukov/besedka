@@ -119,11 +119,6 @@ struct Besedka final : wxl::core::sta_refcounted, private wxl::core::noncopyable
     Shell shell;
     Navigator navigator{api, shell, assets, stop.token()};
 
-    // Пока место не восстановлено, ничего и не запоминается: иначе первым же
-    // делом на месте окна читателя оказались бы пропорции заставки,
-    // поставленные нами самими.
-    bool restored = false;
-
     /// Масштаб окна -- эффект wxl: клавиши, Ctrl+колесо, жест масштабирования и
     /// flyout с числом. Сохранённый масштаб ставит модели запуск, прочитав
     /// настройки, -- до показа окна, так что окно открывается уже в нём.
@@ -159,12 +154,6 @@ struct Besedka final : wxl::core::sta_refcounted, private wxl::core::noncopyable
         // страницами.
         zoom,
 
-        // Приходит и на перемещение, и на изменение размера, и на смену
-        // представления -- то есть на всё, что запоминается.
-        onGeometryChanged += [this] {
-            if (restored) windowMoved();
-        },
-
         // Место окна -- у него самого, пока оно есть: после Closed спросить
         // будет не у кого. Потом отмена: сценарий, который ждёт под токеном,
         // кончится на этом ожидании, открытое сообщение и «О программе»
@@ -174,7 +163,7 @@ struct Besedka final : wxl::core::sta_refcounted, private wxl::core::noncopyable
         // вызова, снимает настройки этого мига и уходит писать. Дожидается
         // цикла его держатель, умирая с приложением.
         onClosed += [this] {
-            if (restored) windowMoved();
+            if (geometryWatch) windowMoved();
             stop.cancel();
             settingsWrite.signal();
         },
@@ -230,7 +219,8 @@ struct Besedka final : wxl::core::sta_refcounted, private wxl::core::noncopyable
     /// рамку оно знает само.
     void shapeForSplash();
 
-    /// Витрина открылась -- окно принимает свой рабочий вид, и ровно один раз.
+    /// Витрина открылась -- окно принимает свой рабочий вид, и ровно один раз:
+    /// второй раз его не ставят, раз место уже слушается (geometryWatch).
     /// Умолчание и запомненное разведены: `placement` молча ничего не делает,
     /// когда разбирать нечего, поэтому первый запуск ставится по центру сам.
     void restoreWindowOnce();
@@ -260,6 +250,12 @@ struct Besedka final : wxl::core::sta_refcounted, private wxl::core::noncopyable
 
     // Подписки -- после цикла записи: их слушатели будят его, и держатели
     // снимаются раньше, чем он умирает.
+
+    /// Место окна; появляется, когда окно поставлено на место из настроек
+    /// (restoreWindowOnce): перемены до того -- наши, а не читателя, и первым же
+    /// делом на месте окна читателя оказались бы пропорции заставки.
+    using GeometryWatch = wxl::WindowWatch<wxl::EventKey::GeometryChanged, &Besedka::windowMoved>;
+    std::unique_ptr<GeometryWatch> geometryWatch;
 
     /// Масштаб окна (поле модели эффекта); появляется, когда масштаб поставлен
     /// из настроек (start): прочитанное из файла -- не перемена, которую надо
@@ -408,12 +404,22 @@ void Besedka::shapeForSplash() {
 }
 
 void Besedka::restoreWindowOnce() {
-    if (std::exchange(restored, true)) return;
+    if (geometryWatch) return;
 
     if (workspace.settings.windowPlacement.empty())
         window.centreWithClientSize({kInitialWidth, kInitialHeight});
     else
         window.placement(workspace.settings.windowPlacement);
+
+    // Место окна запоминается с этих пор, когда окно стоит там, где его
+    // оставили. Перемены выше -- наши, а не читателя: место, снятое с них,
+    // затёрло бы в настройках запомненное прежде, чем его поставят.
+    geometryWatch = std::make_unique<GeometryWatch>(window, *this);
+
+    // Место, где окно встало, -- в настройки сразу, как всякая перемена: окно
+    // могло подогнаться под сегодняшние мониторы, а испорченный файл
+    // настроек этой записью и заменяется, о чём запуск уже сказал читателю.
+    windowMoved();
 }
 
 }  // namespace
