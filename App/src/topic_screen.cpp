@@ -106,7 +106,7 @@ Button TopicScreen::topicRow(const forum::MessageInfo& topic,
     // Так же сделано у jana, и по той же причине.
     auto line = Grid{
         Margin{0, 4, 0, 0},
-        columnDefinitions = L"*,auto,auto,auto",
+        ColumnDefinitions<u"*,auto,auto,auto">,
 
         TextBlock{
             column = 0,
@@ -157,11 +157,11 @@ Button TopicScreen::topicRow(const forum::MessageInfo& topic,
         // Слева по теме щёлкают один раз, справа -- два: там одиночный щелчок
         // принадлежит содержимому. Взаимоисключающе, потому что XAML шлёт
         // DoubleTapped вслед за Click.
-        onClick =
+        onClick +=
             [this, id](Object const&, RoutedEventArgs&) {
                 if (!secondary_) openById(id);
             },
-        onDoubleTapped =
+        onDoubleTapped +=
             [this, id](Object const&, DoubleTappedRoutedEventArgs&) {
                 if (secondary_) openById(id);
             },

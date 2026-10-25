@@ -119,12 +119,12 @@ struct Besedka {
 
         // Приходит и на перемещение, и на изменение размера, и на смену
         // представления -- то есть на всё, что запоминается.
-        onGeometryChanged = [this] {
+        onGeometryChanged += [this] {
             if (restored) settings.scheduleSave();
         },
 
         // Закрытие -- последний шанс: таймер после него уже не тикнет.
-        onClosed = [this] {
+        onClosed += [this] {
             if (restored) settings.saveNow();
         },
 
@@ -133,7 +133,7 @@ struct Besedka {
         // масштаб прямо здесь: окно отдаёт физические пиксели, а страницам
         // нужны логические -- в них меряется текст, ради которого порог и
         // существует. Масштаб окна в делителе уже есть.
-        onClientSizeChanged =
+        onClientSizeChanged +=
             [this](Object const&, ClientSize const& client) {
                 navigator.setWidth(client.size.width / client.scale);
             },

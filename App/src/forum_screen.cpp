@@ -213,7 +213,7 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
             // `weight(1f, fill = false)`, то есть «не больше строки, но и
             // не шире, чем нужно». Звезда, ушедшая к правому краю, читалась
             // бы отдельной колонкой, а она -- часть названия.
-            columnDefinitions = L"auto,*",
+            ColumnDefinitions<u"auto,*">,
             title,
             marks,
         },
@@ -243,7 +243,7 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
         // без этого экранный диктор скажет «кнопка» и замолчит.
         automationName = std::wstring(forum.name),
         content = Grid{
-            columnDefinitions = L"auto,*",
+            ColumnDefinitions<u"auto,*">,
             icon,
             lines,
         },
@@ -252,11 +252,11 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
         // что там одиночный принадлежит содержимому. Развести их надо именно
         // так, взаимоисключающе: XAML шлёт DoubleTapped вслед за Click, и
         // страница, слушающая оба разом, открыла бы форум дважды.
-        onClick =
+        onClick +=
             [this, id](Object const&, RoutedEventArgs&) {
                 if (!secondary_) openById(id);
             },
-        onDoubleTapped =
+        onDoubleTapped +=
             [this, id](Object const&, DoubleTappedRoutedEventArgs&) {
                 if (secondary_) openById(id);
             },

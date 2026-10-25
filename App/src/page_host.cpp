@@ -53,7 +53,7 @@ PageHost::PageHost() {
         // сам показывает курсор элемента, ловить вход и выход не нужно.
         cursor = InputSystemCursorShape::SizeWestEast,
 
-        onPointerPressed =
+        onPointerPressed +=
             [this](Object const&, PointerRoutedEventArgs& args) {
                 // Берётся у своего же поля, а не у отправителя: полоска --
                 // часть хоста и живёт столько же, сколько он.
@@ -62,7 +62,7 @@ PageHost::PageHost() {
                 dragging_ = true;
             },
 
-        onPointerMoved =
+        onPointerMoved +=
             [this](Object const&, PointerRoutedEventArgs& args) {
                 if (!dragging_) return;
 
@@ -76,7 +76,7 @@ PageHost::PageHost() {
                 splitFraction(args.getCurrentPoint(root_.value()).position().x / width);
             },
 
-        onPointerReleased =
+        onPointerReleased +=
             [this](Object const&, PointerRoutedEventArgs& args) {
                 if (!dragging_) return;
 
@@ -89,7 +89,7 @@ PageHost::PageHost() {
 
         // Захват пропадает и сам: окно потеряло активацию, касание отменили.
         // Тяга, которая ждала бы только отпускания, осталась бы зажатой.
-        onPointerCaptureLost =
+        onPointerCaptureLost +=
             [this](Object const&, PointerRoutedEventArgs&) {
                 if (!std::exchange(dragging_, false)) return;
 

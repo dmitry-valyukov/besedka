@@ -2,6 +2,8 @@
 // системный заголовок после импорта MSVC уже не принимает.
 #include <windows.h>
 
+#include <vector>
+
 #include "shell.h"
 #include "palette.h"
 
@@ -64,7 +66,7 @@ Button iconButton(wchar_t code, std::wstring_view hint, std::function<void()> ac
         toolTip = std::wstring(hint),
         automationName = std::wstring(hint),
         content = FontIcon{glyph = glyph_of(code), fontSize = kIconSide},
-        onClick = [action = std::move(action)](Object const&,
+        onClick += [action = std::move(action)](Object const&,
                                                RoutedEventArgs&) { if (action) action(); },
     };
 }
@@ -155,12 +157,12 @@ Shell::Shell() {
             background = palette.transparent,
             BorderThickness{0},
             fontSize = 13,
-            onClick = [this](Object const&, RoutedEventArgs&) { if (onLogin) onLogin(); },
+            onClick += [this](Object const&, RoutedEventArgs&) { if (onLogin) onLogin(); },
         },
     };
 
     leftHeader_ = Grid{
-        columnDefinitions = L"auto,auto,auto,auto",
+        ColumnDefinitions<u"auto,auto,auto,auto">,
         Margin{kBarPaddingX - 2, 0, 0, 0},
 
         Grid{column = 0, back_.value()},
@@ -181,7 +183,7 @@ Shell::Shell() {
     };
 
     rightHeader_ = Grid{
-        columnDefinitions = L"auto,auto,auto,auto",
+        ColumnDefinitions<u"auto,auto,auto,auto">,
 
         Grid{
             column = 0,
@@ -223,7 +225,7 @@ Shell::Shell() {
     // окна.
     tabs_ = SelectorBar{
         hAlign.center,
-        onSelectionChanged =
+        onSelectionChanged +=
             [this](Object const&, SelectorBarSelectionChangedEventArgs&) {
                 if (selectingTab_ || !onTab) return;
 
@@ -289,12 +291,12 @@ Shell::Shell() {
     // Середина (строка 1) добавляется последней и последней же стоит в
     // коллекции: setMiddle снимает её с конца, не считая панелей.
     root_ = Grid{
-        rowDefinitions = L"auto,*,auto,auto",
+        RowDefinitions<u"auto,*,auto,auto">,
 
         // Клавиши браузера: «назад»/«вперёд» на клавиатуре и Alt со
         // стрелками. Событие поднимается сюда от того, у кого фокус, -- то
         // есть с любой страницы. Масштаб с клавиш ведёт ZoomEffect окна.
-        onKeyDown =
+        onKeyDown +=
             [this](Object const&, KeyRoutedEventArgs& args) {
                 const VirtualKey key = args.key();
 
@@ -352,15 +354,15 @@ void Shell::setBreadcrumb(const std::span<const std::wstring> crumbs) {
     // Каждое звено -- в своей колонке по ширине текста, между ними косая
     // черта; последнее -- в звёздной, чтобы длинная тема резалась многоточием,
     // а не выталкивала соседей за край.
-    std::wstring columns;
+    std::vector<GridLength> columns;
 
     for (std::size_t at = 0; at < crumbs.size(); ++at) {
-        if (at > 0) columns += L"auto,";
+        if (at > 0) columns.push_back({1.0, GridUnitType::Auto});
 
-        columns += at + 1 == crumbs.size() ? L"*" : L"auto,";
+        columns.push_back({1.0, at + 1 == crumbs.size() ? GridUnitType::Star : GridUnitType::Auto});
     }
 
-    row.columnDefinitions(columns);
+    Apply {row, columnDefinitions = columns};
 
     std::int32_t next = 0;
 

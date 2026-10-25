@@ -33,7 +33,7 @@ SplashScreen::SplashScreen() {
         hAlign.left,
         Margin{0, 16, 0, 0},
         visibility = Visibility::Collapsed,
-        onClick = [this](Object const&, RoutedEventArgs&) { if (onRetry) onRetry(); },
+        onClick += [this](Object const&, RoutedEventArgs&) { if (onRetry) onRetry(); },
     };
 
     // Одна карточка и больше ничего: картинки заставки здесь нет и быть не
