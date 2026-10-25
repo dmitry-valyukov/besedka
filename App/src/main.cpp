@@ -221,8 +221,8 @@ struct Besedka final : wxl::core::sta_refcounted, private wxl::core::noncopyable
 
     /// Витрина открылась -- окно принимает свой рабочий вид, и ровно один раз:
     /// второй раз его не ставят, раз место уже слушается (geometryWatch).
-    /// Умолчание и запомненное разведены: `placement` молча ничего не делает,
-    /// когда разбирать нечего, поэтому первый запуск ставится по центру сам.
+    /// Сначала умолчание -- по центру, рабочего размера, -- и лишь поверх него
+    /// запомненное место.
     void restoreWindowOnce();
 
     /// Ведёт сценарий и читает, чем он кончился: отмена -- обычный конец,
@@ -406,10 +406,14 @@ void Besedka::shapeForSplash() {
 void Besedka::restoreWindowOnce() {
     if (geometryWatch) return;
 
-    if (workspace.settings.windowPlacement.empty())
-        window.centreWithClientSize({kInitialWidth, kInitialHeight});
-    else
-        window.placement(workspace.settings.windowPlacement);
+    window.centreWithClientSize({kInitialWidth, kInitialHeight});
+
+    // Размер по умолчанию ставится всегда, и лишь потом накрывается
+    // запомненным. Иначе испорченная строка в настройках оставила бы окно
+    // таким, каким его поставила заставка: placement молча ничего не делает,
+    // когда разбирать нечего, -- и это правильно, но своё умолчание к тому
+    // моменту должно быть уже на месте.
+    if (!workspace.settings.windowPlacement.empty()) window.placement(workspace.settings.windowPlacement);
 
     // Место окна запоминается с этих пор, когда окно стоит там, где его
     // оставили. Перемены выше -- наши, а не читателя: место, снятое с них,
