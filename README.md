@@ -14,8 +14,19 @@
 
 ## Сборка
 
-Нужна соседняя библиотека [wxl](../wxl) — путь задаётся `BESEDKA_WXL_ROOT`
-(по умолчанию `../wxl`) — и Visual Studio с тулчейном, умеющим `import std;`.
+Нужны:
+
+- соседнее дерево [wxl](https://github.com/wxl-project/wxl) — путь задаётся
+  `BESEDKA_WXL_ROOT` (по умолчанию `../wxl`), — подготовленное так же, как для
+  её собственной сборки: `tools\restore-packages.ps1`, `tools\projection.ps1` и
+  `winui-srcgen --profile wxl.gen\profiles\full.json`, который пишет обёртки в
+  `wxl.ui\src\wxl`;
+- vcpkg с портом `cppwinrt:x64-windows-static-md`; корень берётся из
+  `VCPKG_ROOT` или из `vcpkg.path.txt`, который пишет сам vcpkg;
+- Visual Studio с тулчейном, умеющим `import std;`, и CMake той версии, для
+  которой шлюз `import std;` в wxl знает свой UUID;
+- для запуска — экспериментальная среда Windows App Runtime: её ставит
+  `tools\install-runtime.ps1` из дерева wxl.
 
 ```
 tools\build.ps1                 # настроить (если нужно) и собрать Debug
@@ -24,7 +35,8 @@ ctest --preset x64-debug
 run-besedka.cmd                 # собрать Debug и запустить
 ```
 
-Скрипт сам поднимает окружение Visual Studio, так что годится обычная оболочка.
+`tools\build.ps1` и `run-besedka.cmd` идут через PowerShell 7 (`pwsh`). Скрипт
+сам поднимает окружение Visual Studio, так что годится обычная оболочка.
 Генератор — Ninja Multi-Config: генераторы Visual Studio не собирают
 `import std;`. googletest для тестов настройка собирает из исходников сама,
 тем же способом, что и wxl.

@@ -204,7 +204,7 @@ jobs:
         working-directory: wxl
         run: build\x64\wxl.gen\${{ matrix.config }}\winui-srcgen.exe --profile wxl.gen\profiles\full.json
 
-      # googletest настройка берёт из его репозитория на закреплённой метке
+      # Настройка берёт googletest из его репозитория на закреплённой метке
       # (wxl_gtest.cmake дерева wxl) и собирает вместе с тестами, как в
       # проверке самой wxl: из vcpkg ставится только cppwinrt.
       - name: Configure
@@ -212,6 +212,8 @@ jobs:
         working-directory: Besedka
         run: |
           call "%DEVCMD%" -arch=x64 -host_arch=x64 %VCVARS%
+          cmake --version
+          ninja --version
           cmake --preset x64 -DVCPKG_ROOT=C:/vcpkg
 
       # -k 0: все ошибки компиляции правки сразу, а не только первая.
