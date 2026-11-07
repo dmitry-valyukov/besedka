@@ -67,7 +67,7 @@ void TopicScreen::setError(const std::wstring_view said) {
         std::wstring(said),
         fontSize = 14,
         Margin{0, 24, 0, 0},
-        textWrap.wrap,
+        textWrap.simple,
         foreground = palette.critical,
     });
 }
@@ -96,7 +96,7 @@ Button TopicScreen::topicRow(const forum::MessageInfo& topic,
         fontSize = kTitleSize,
         FontWeight{500},
         foreground = palette.text,
-        textWrap.wrap,
+        textWrap.simple,
         maxLines = 2,
         textTrimming.characterEllipsis,
     };

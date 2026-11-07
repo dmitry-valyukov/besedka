@@ -72,7 +72,7 @@ void MessageScreen::setError(const std::wstring_view said) {
         std::wstring(said),
         fontSize = 14,
         Margin{0, 24, 0, 0},
-        textWrap.wrap,
+        textWrap.simple,
         foreground = palette.critical,
     });
 }
