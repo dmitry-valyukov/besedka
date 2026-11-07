@@ -11,7 +11,7 @@ SplashScreen::SplashScreen() {
         L"Здравствуйте!",
         fontSize = 15,
         foreground = palette.splashInkDim,
-        textWrapping.wrap,
+        textWrap.wrap,
         Margin{0, 10, 0, 0},
     };
 

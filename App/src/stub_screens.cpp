@@ -41,7 +41,7 @@ UIElement emptyScreen(wchar_t code, std::wstring_view heading, std::wstring_view
                 hAlign.center,
                 Margin{0, 6, 0, 0},
                 textAlignment.center,
-                textWrapping.wrap,
+                textWrap.wrap,
                 foreground = palette.textTertiary,
             },
         },
