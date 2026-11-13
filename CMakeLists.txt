@@ -122,7 +122,13 @@ if(BESEDKA_BUILD_TESTS)
     enable_testing()
 
     # Тот же gtest, что у wxl, и та же обвязка (wxl_add_gtest): у Беседки
-    # нет причин заводить второй способ писать тесты.
+    # нет причин заводить второй способ писать тесты. «Тот же» буквально:
+    # wxl_gtest.cmake собирает googletest из исходников на закреплённой метке,
+    # как для собственных тестов wxl, со стандартом языка и рантаймом этой
+    # настройки, и через OVERRIDE_FIND_PACKAGE отвечает на find_package(GTest)
+    # ниже. Ставить для этого пакет не нужно, а машина и CI получают один и тот
+    # же gtest.
+    include("${BESEDKA_WXL_CMAKE_DIR}/wxl_gtest.cmake")
     find_package(GTest CONFIG REQUIRED)
     include(GoogleTest)
 endif()
