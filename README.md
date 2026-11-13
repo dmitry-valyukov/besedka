@@ -17,16 +17,14 @@
 Нужны:
 
 - соседнее дерево [wxl](https://github.com/wxl-project/wxl) — путь задаётся
-  `BESEDKA_WXL_ROOT` (по умолчанию `../wxl`), — подготовленное так же, как для
-  её собственной сборки: `tools\restore-packages.ps1`, `tools\projection.ps1` и
-  `winui-srcgen --profile wxl.gen\profiles\full.json`, который пишет обёртки в
-  `wxl.ui\src\wxl`;
-- vcpkg с портом `cppwinrt:x64-windows-static-md`; корень берётся из
-  `VCPKG_ROOT` или из `vcpkg.path.txt`, который пишет сам vcpkg;
-- Visual Studio с тулчейном, умеющим `import std;`, и CMake той версии, для
-  которой шлюз `import std;` в wxl знает свой UUID;
-- для запуска — экспериментальная среда Windows App Runtime: её ставит
-  `tools\install-runtime.ps1` из дерева wxl.
+  `BESEDKA_WXL_ROOT` (по умолчанию `../wxl`). Пакеты NuGet, проекцию cppwinrt и
+  обёртки wxl готовит сама при настройке и сборке, поэтому первая настройка
+  ходит в сеть;
+- Visual Studio с тулчейном, умеющим `import std;`, и компонентом C++ WinUI, и
+  CMake той версии, для которой шлюз `import std;` в wxl знает свой UUID;
+- для запуска — экспериментальная среда Windows App Runtime: её ставит утилита
+  `winxl` (`-DWXL_WINXL=ON`): `winxl runtime install --packages
+  build\x64\wxl.packages\restored-packages.json`.
 
 ```
 tools\build.ps1                 # настроить (если нужно) и собрать Debug

@@ -43,7 +43,7 @@ public:
     /// @param token токен общего источника приложения: под дочерним от него
     ///        источником ждёт ответа диалог «О программе».
     Navigator(forum::Api& api, Shell& shell, const std::filesystem::path& assets,
-              wxl::async::cancellation_token token);
+              wxl::async::stop_token token);
 
     Navigator(const Navigator&) = delete;
     Navigator& operator=(const Navigator&) = delete;

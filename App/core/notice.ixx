@@ -4,7 +4,7 @@
 export module besedka.app:notice;
 
 import std;
-import wxl.async;
+import wxl.core;
 
 export namespace besedka::app {
 

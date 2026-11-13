@@ -17,7 +17,7 @@
 #include <system_error>
 
 import besedka.app;
-import wxl.async;
+import wxl.core;
 
 using namespace besedka::app;
 using wxl::async::sta_loop;

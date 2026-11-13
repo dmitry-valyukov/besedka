@@ -9,7 +9,6 @@ module;
 module besedka.forum;
 
 import std;
-import wxl.async;
 import wxl.core;
 
 namespace besedka::forum {

@@ -437,6 +437,6 @@ void Shell::setBusy(const bool busy) {
     ring_.value().visibility(busy ? Visibility::Visible : Visibility::Collapsed);
 }
 
-void Shell::setStatusText(const std::wstring_view said) { status_.value().text(said); }
+void Shell::setStatusText(const wxl::core::zstring_view said) { status_.value().text(said); }
 
 }  // namespace besedka::app

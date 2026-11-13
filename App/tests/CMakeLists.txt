@@ -14,5 +14,4 @@ wxl_add_gtest(besedka.app.tests
         besedka::app
         besedka::forum
         wxl::core
-        wxl::async
 )

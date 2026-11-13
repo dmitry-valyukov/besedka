@@ -24,7 +24,7 @@ export module besedka.forum:api;
 import :model;
 import :transport;
 import std;
-import wxl.async;
+import wxl.core;
 
 export namespace besedka::forum {
 

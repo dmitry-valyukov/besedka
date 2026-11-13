@@ -12,7 +12,7 @@
 // возвращает ответ -- на том потоке он и разбирается, потому что дерево JSON
 // живёт в пуле STA.
 //
-// Запуск -- сценарий, корутина wxl.async (runStart): файл настроек читает
+// Запуск -- сценарий, корутина wxl (runStart): файл настроек читает
 // рабочее место операцией wxl, а поток интерфейса тем временем крутит цикл
 // сообщений. Сбой, которого сценарий сам не поймал, -- сообщение читателю
 // (reported). Отмена -- деревом источников: у приложения один общий источник
@@ -49,7 +49,7 @@
 
 import besedka.app;
 import besedka.forum;
-import wxl.async;
+import wxl.core;
 
 using namespace wxl;
 using namespace wxl::dsl;
@@ -109,7 +109,7 @@ struct Besedka final : wxl::core::sta_refcounted, private wxl::core::noncopyable
     /// Общий источник отмены: от него -- дочерние источники сценариев и
     /// сообщений, под токенами которых те ждут. Отменяет его закрытие окна,
     /// один раз на жизнь приложения: обратно отмену не взять.
-    wxl::async::cancellation_source stop;
+    wxl::async::stop_source stop;
 
     /// Рабочее место: настройки и их файл. Пустое: его наполнит запуск, и
     /// наполнит асинхронно -- в этом потоке к диску не обращаются.
@@ -164,7 +164,7 @@ struct Besedka final : wxl::core::sta_refcounted, private wxl::core::noncopyable
         // цикла его держатель, умирая с приложением.
         onClosed += [this] {
             if (geometryWatch) windowMoved();
-            stop.cancel();
+            stop.request_stop();
             settingsWrite.signal();
         },
 
@@ -192,8 +192,8 @@ struct Besedka final : wxl::core::sta_refcounted, private wxl::core::noncopyable
     /// последнюю запись делает, умирая, раньше них. Стартует здесь же и сразу
     /// встаёт на ожидание таймера: лямбда только отдаёт держателю
     /// корутину-член, а до пробуждения цикл полей не трогает.
-    DeferredWrite settingsWrite{window.dispatcherQueue(), kSaveQuiet, stop.token(),
-                                [this](WaitableTimer& timer, wxl::async::cancellation_token token) {
+    DeferredWrite settingsWrite{kSaveQuiet, stop.token(),
+                                [this](WaitableTimer& timer, wxl::async::stop_token token) {
                                     return writeSettings(timer, std::move(token));
                                 }};
 
@@ -237,7 +237,7 @@ struct Besedka final : wxl::core::sta_refcounted, private wxl::core::noncopyable
     wxl::async::task<> runStart();
 
     /// Цикл записи настроек. Его держит settingsWrite.
-    wxl::async::task<> writeSettings(WaitableTimer& timer, wxl::async::cancellation_token token);
+    wxl::async::task<> writeSettings(WaitableTimer& timer, wxl::async::stop_token token);
 
     /// Окно сдвинулось или сменило размер: место снимается сейчас, а запись
     /// отодвигается. Снимается в миг перемены, а не в цикле записи: тот может
@@ -369,12 +369,12 @@ wxl::async::task<> Besedka::runStart() {
 /// Настройки целиком. Текст рабочее место собирает в момент вызова, до
 /// ожидания: «сейчас» будит ждущий цикл внутри своего вызова, и на диск уходят
 /// настройки этого мига.
-wxl::async::task<> Besedka::writeSettings(WaitableTimer& timer, wxl::async::cancellation_token token) {
+wxl::async::task<> Besedka::writeSettings(WaitableTimer& timer, wxl::async::stop_token token) {
     for (;;) {
         co_await timer;
 
         // Отмена посреди записи -- ещё один круг.
-        bool const last = token.is_canceled();
+        bool const last = token.stop_requested();
 
         try {
             co_await workspace.saveSettings();
@@ -387,7 +387,7 @@ wxl::async::task<> Besedka::writeSettings(WaitableTimer& timer, wxl::async::canc
 }
 
 void Besedka::windowMoved() noexcept {
-    workspace.settings.windowPlacement = window.placement();
+    workspace.settings.windowPlacement = std::wstring(wxl::core::zstring_view(window.placement()).wide());
     settingsWrite.restart();
 }
 

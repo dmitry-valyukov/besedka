@@ -9,7 +9,7 @@
 export module besedka.app:workspace;
 
 import std;
-import wxl.async;
+import wxl.core;
 
 import :notice;
 import :settings;

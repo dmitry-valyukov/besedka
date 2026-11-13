@@ -28,10 +28,10 @@ public:
     const wxl::UIElement& root() const { return root_.value(); }
 
     /// Что происходит прямо сейчас: «Читаю витрину форумов…».
-    void setStatus(std::wstring_view said);
+    void setStatus(wxl::core::zstring_view said);
 
     /// Не вышло. Вместо колечка -- причина и кнопка «Ещё раз».
-    void setError(std::wstring_view said);
+    void setError(wxl::core::zstring_view said);
 
     std::function<void()> onRetry;
 

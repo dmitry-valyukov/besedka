@@ -21,7 +21,6 @@ export module besedka.forum:parse;
 
 import :model;
 import std;
-import wxl.json;
 import wxl.core;
 
 export namespace besedka::forum {

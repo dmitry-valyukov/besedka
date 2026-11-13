@@ -64,7 +64,7 @@ SplashScreen::SplashScreen() {
     };
 }
 
-void SplashScreen::setStatus(const std::wstring_view said) {
+void SplashScreen::setStatus(const wxl::core::zstring_view said) {
     status_.value().text(said);
 
     ring_.value().visibility(Visibility::Visible);
@@ -72,7 +72,7 @@ void SplashScreen::setStatus(const std::wstring_view said) {
     retry_.value().visibility(Visibility::Collapsed);
 }
 
-void SplashScreen::setError(const std::wstring_view said) {
+void SplashScreen::setError(const wxl::core::zstring_view said) {
     status_.value().text(said);
 
     // Колечко убирается совсем, а не останавливается: крутящееся и

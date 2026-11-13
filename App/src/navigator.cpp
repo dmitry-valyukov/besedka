@@ -27,7 +27,7 @@ struct overloaded : F... {
 }  // namespace
 
 Navigator::Navigator(forum::Api& api, Shell& shell, const std::filesystem::path& assets,
-                     wxl::async::cancellation_token token)
+                     wxl::async::stop_token token)
     : api_(api), shell_(shell), watched_(watchedScreen()), outbox_(outboxScreen()), about_(std::move(token)) {
     messages_.setBaseDirectory(assets.wstring());
 

@@ -8,8 +8,6 @@ module besedka.app;
 
 import std;
 import wxl.core;
-import wxl.fmt;
-import wxl.xml;
 
 namespace besedka::app {
 

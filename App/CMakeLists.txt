@@ -5,7 +5,7 @@
 # XAML, ни сети; отсюда тесты в tests/.
 #
 # src/ -- исполняемый файл: окно, каркас, экраны и переходы между ними. Он
-# линкуется с wxl::ui, besedka::forum и besedka::app, и больше ничем.
+# линкуется с wxl::ui.full, besedka::forum и besedka::app, и больше ничем.
 # Доступ к декларативной поверхности не должен стоить приложению разбора
 # проекции cppwinrt, и отсутствие её include-пути здесь -- то, что это
 # гарантирует.
@@ -43,31 +43,28 @@ wxl_add_module_library(besedka.app STATIC
 add_library(besedka::app ALIAS besedka.app)
 
 # PUBLIC: модель форума стоит в интерфейсе (маршрут несёт форум и тему,
-# списки принимают страницу сообщений), а с ней приезжает wxl::core.
-# wxl::xml -- только настройкам, но модуль один, и его читатель
-# XML линкуется вместе с остальным. wxl::async -- тоже в интерфейсе: рабочее
-# место отдаёт задачи (task), а слова читателю называют сбой операции с
-# файлом (last_error).
+# списки принимают страницу сообщений), а с ней приезжает wxl::core -- со
+# всем, что от него нужно модулю: задачи (task) в интерфейсе рабочего места,
+# сбой операции с файлом (last_error) в словах читателю, построитель текста и
+# читатель XML в settings.cpp. Всё это области одного модуля.
 target_link_libraries(besedka.app PUBLIC
     besedka::forum
     wxl::core
-    wxl::xml
-    wxl::async
 )
-
-# Только внутри: построитель текста собирает settings.xml в settings.cpp и
-# наружу не выходит.
-target_link_libraries(besedka.app PRIVATE wxl::fmt)
 
 # Каталог данных спрашивается у оболочки (SHGetKnownFolderPath).
 target_link_libraries(besedka.app PRIVATE shell32)
 
 # ---- Besedka: окно, каркас, экраны ----
 
-add_executable(Besedka WIN32
+# <windows.h> включается здесь раньше platform.h из wxl, а без этих определений
+# он тянет макросы min и max, которые ломают заголовки wxl.ui.
+add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
+
+wxl_add_executable(Besedka
+    UI wxl::ui.full
     src/main.cpp
     src/navigator.cpp
-    src/notices.cpp
     src/shell.cpp
     src/page_host.cpp
     src/splash_screen.cpp
@@ -76,9 +73,10 @@ add_executable(Besedka WIN32
     src/forum_screen.cpp
     src/topic_screen.cpp
     src/message_screen.cpp
+    src/notices.cpp
     src/deferred_write.h
-    src/navigator.h
     src/notices.h
+    src/navigator.h
     src/shell.h
     src/page_host.h
     src/splash_screen.h
@@ -89,16 +87,12 @@ add_executable(Besedka WIN32
     src/message_screen.h
     src/palette.h
     src/pch.h
-    src/app.manifest
 )
 
 target_link_libraries(Besedka PRIVATE
-    wxl::ui
     besedka::forum
     besedka::app
 )
-
-besedka_consumes_wxl(Besedka)
 
 # Всё, что приложение показывает, но не компилирует, лежит в одном каталоге --
 # src/Assets: картинки окна (заставка и задник чтения) и смайлы форума. Оттуда
@@ -106,50 +100,10 @@ besedka_consumes_wxl(Besedka)
 # XAML разрешает именно оттуда, а смайлы токенизатор wxl.rsdn называет как
 # <img src="smiles/...">, разрешая их от baseDirectory.
 #
-# Один каталог, а не три источника: добавленная картинка едет с остальными,
-# ничего не дописывая сюда. Копируется на каждой сборке -- правка картинки не
-# повод перелинковывать, -- и copy_directory сам не трогает то, что не менялось.
-#
 # Смайлы -- копия набора wxl.rsdn: там же лежит и таблица кодов, по которой
 # токенизатор выбирает файл. Разойдутся -- в сообщении появится пустой квадрат
 # вместо смайла, и лечится это переносом файла оттуда сюда.
-add_custom_command(TARGET Besedka POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/Assets" "$<TARGET_FILE_DIR:Besedka>/Assets"
-    COMMENT "Копирование ресурсов рядом с Беседкой")
-
-# Загрузчик Windows App Runtime находит пакет платформы при старте, поэтому
-# его DLL обязана лежать рядом.
-set(_besedka_bootstrap_dll
-    "${WXL_WINDOWSAPPSDK_FOUNDATION_DIR}/runtimes/win-x64/native/Microsoft.WindowsAppRuntime.Bootstrap.dll")
-
-if(EXISTS "${_besedka_bootstrap_dll}")
-    add_custom_command(TARGET Besedka POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${_besedka_bootstrap_dll}" "$<TARGET_FILE_DIR:Besedka>"
-        COMMENT "Копирование загрузчика Windows App Runtime рядом с Беседкой")
-else()
-    message(WARNING
-        "Нет Microsoft.WindowsAppRuntime.Bootstrap.dll по пути ${_besedka_bootstrap_dll}; "
-        "Беседка не запустится, пока она не окажется рядом с исполняемым файлом.")
-endif()
-
-# Win2D (Microsoft.Graphics.Canvas) активируется неупакованно, из своей нативной
-# DLL рядом с exe: ею CompositionWindow грузит картинки задника (TextureCache),
-# и без неё окно падает при создании. Путь объявляет wxl.ui.
-set(_besedka_win2d_dll
-    "${WXL_WIN2D_DIR}/runtimes/win-x64/native/Microsoft.Graphics.Canvas.dll")
-
-if(EXISTS "${_besedka_win2d_dll}")
-    add_custom_command(TARGET Besedka POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${_besedka_win2d_dll}" "$<TARGET_FILE_DIR:Besedka>"
-        COMMENT "Копирование Microsoft.Graphics.Canvas.dll (Win2D) рядом с Беседкой")
-else()
-    message(WARNING
-        "Нет Microsoft.Graphics.Canvas.dll по пути ${_besedka_win2d_dll}; "
-        "Беседка упадёт при создании окна, пока эта DLL не окажется рядом с ней.")
-endif()
+wxl_target_assets(Besedka src/Assets)
 
 if(BESEDKA_BUILD_TESTS)
     add_subdirectory(tests)

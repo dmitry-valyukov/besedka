@@ -14,9 +14,9 @@
 #include "pch.h"
 
 // Импорт -- последним: слова читателю (Notice) -- besedka.app, ожидание
-// ответа и источник отмены -- wxl.async.
+// ответа и источник остановки -- wxl.
 import besedka.app;
-import wxl.async;
+import wxl.core;
 
 namespace besedka::app {
 
@@ -44,7 +44,7 @@ public:
     /// @param token токен общего источника приложения: от него -- свой
     ///        источник сообщений, и его отмена закрывает открытое.
     Notices(wxl::CompositionWindow window, wxl::core::observable<wxl::ElementTheme const>& screenTheme,
-            wxl::async::cancellation_token token);
+            wxl::async::stop_token token);
 
     ~Notices();
 
@@ -75,7 +75,7 @@ private:
     /// Источник отмены сообщений, дочерний от общего: под его токеном ждёт
     /// ответа открытое сообщение (showDialog), и закрытие окна, отменяя общий,
     /// закрывает его.
-    wxl::async::cancellation_source dialogStop_;
+    wxl::async::stop_source dialogStop_;
 
     /// Ожидание ответа открытого сообщения -- последним: стоит под источником
     /// выше. Новое сообщение открывается, только когда прежнее закрыто, и его

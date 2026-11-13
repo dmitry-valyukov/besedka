@@ -5,7 +5,6 @@ module;
 module besedka.app;
 
 import std;
-import wxl.async;
 import wxl.core;
 
 namespace besedka::app {

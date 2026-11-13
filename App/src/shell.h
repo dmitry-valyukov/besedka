@@ -73,7 +73,7 @@ public:
 
     /// Полоса внизу окна. У jana туда попадает адрес ссылки под указателем;
     /// у нас -- где мы и что стоит сказать, не заводя окна с сообщением.
-    void setStatusText(std::wstring_view said);
+    void setStatusText(wxl::core::zstring_view said);
 
     std::function<void()> onBack;
     std::function<void()> onForward;

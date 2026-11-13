@@ -10,7 +10,7 @@
 #include <string>
 
 import besedka.app;
-import wxl.async;
+import wxl.core;
 
 using namespace besedka::app;
 using wxl::async::last_error;

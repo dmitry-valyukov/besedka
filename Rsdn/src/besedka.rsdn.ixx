@@ -26,14 +26,13 @@
 export module besedka.rsdn;
 
 import std;
-export import wxl.html;
-import wxl.core;
+export import wxl.core;
 
 export namespace besedka::rsdn {
 
 /// Разбирает разметку RSDN. Не бросает ни на каком входе; восстановления
 /// пишутся в document::errors(), как у всего семейства.
-wxl::html::document parse(std::wstring_view input);
+wxl::html::document parse(std::u16string_view input);
 
 /// То же для проверенного UTF-8.
 wxl::html::document parse(wxl::core::u8_view input);

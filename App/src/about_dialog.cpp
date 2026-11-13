@@ -27,7 +27,7 @@ constexpr double kImageHeight = kCardWidth;
 
 }  // namespace
 
-AboutDialog::AboutDialog(wxl::async::cancellation_token token) : dialogStop_(std::move(token)) {
+AboutDialog::AboutDialog(wxl::async::stop_token token) : dialogStop_(std::move(token)) {
     server_ = TextBlock{
         fontSize = 10,
         hAlign.center,
@@ -95,7 +95,7 @@ AboutDialog::AboutDialog(wxl::async::cancellation_token token) : dialogStop_(std
 
 void AboutDialog::show(const UIElement& host) { dialogWait_ = showDialog(dialog_.value(), host, dialogStop_.token()); }
 
-void AboutDialog::setServerLine(const std::wstring_view said) {
+void AboutDialog::setServerLine(const wxl::core::zstring_view said) {
     server_.value().text(said);
     server_.value().visibility(said.empty() ? Visibility::Collapsed : Visibility::Visible);
 }
