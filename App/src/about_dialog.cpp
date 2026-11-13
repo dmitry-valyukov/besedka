@@ -27,7 +27,7 @@ constexpr double kImageHeight = kCardWidth;
 
 }  // namespace
 
-AboutDialog::AboutDialog() {
+AboutDialog::AboutDialog(wxl::async::stop_token token) : dialogStop_(std::move(token)) {
     server_ = TextBlock{
         fontSize = 10,
         hAlign.center,
@@ -38,6 +38,9 @@ AboutDialog::AboutDialog() {
 
     dialog_ = ContentDialog{
         closeButtonText = L"Закрыть",
+        onClosed += [this](ContentDialog const&) {
+            if (onDismissed) onDismissed();
+        },
         content = StackPanel{
             width = kCardWidth,
 
@@ -90,9 +93,9 @@ AboutDialog::AboutDialog() {
     };
 }
 
-void AboutDialog::show(const UIElement& host) { showDialog(dialog_.value(), host); }
+void AboutDialog::show(const UIElement& host) { dialogWait_ = showDialog(dialog_.value(), host, dialogStop_.token()); }
 
-void AboutDialog::setServerLine(const std::wstring_view said) {
+void AboutDialog::setServerLine(const wxl::core::zstring_view said) {
     server_.value().text(said);
     server_.value().visibility(said.empty() ? Visibility::Collapsed : Visibility::Visible);
 }

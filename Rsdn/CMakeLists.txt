@@ -17,14 +17,14 @@ wxl_add_module_library(besedka.rsdn STATIC
 add_library(besedka::rsdn ALIAS besedka.rsdn)
 
 # PUBLIC: parse() отвечает html::document -- дерево семейства стоит в
-# интерфейсе, и с ним приезжают wxl::core и wxl::xml.
-target_link_libraries(besedka.rsdn PUBLIC wxl::html)
+# интерфейсе, а оно -- область модуля wxl.core.
+target_link_libraries(besedka.rsdn PUBLIC wxl::core)
 
 # PRIVATE: подсветка кода живёт внутри токенизатора -- наружу выходит дерево
 # семейства со <span style="kw">, а не куски wxl.highlight.
 target_link_libraries(besedka.rsdn PRIVATE wxl::highlight)
 
-# Как в wxl.html: исключением может ответить только аллокация.
+# Исключением может ответить только аллокация.
 if(MSVC AND NOT CMAKE_CXX_FLAGS MATCHES "/EHsc")
     target_compile_options(besedka.rsdn PUBLIC /EHsc)
 endif()

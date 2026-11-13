@@ -20,7 +20,6 @@
 export module besedka.forum:transport;
 
 import std;
-import wxl.async;
 import wxl.core;
 
 export namespace besedka::forum {

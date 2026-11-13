@@ -26,8 +26,9 @@ struct overloaded : F... {
 
 }  // namespace
 
-Navigator::Navigator(forum::Api& api, Shell& shell, const std::filesystem::path& assets)
-    : api_(api), shell_(shell), watched_(watchedScreen()), outbox_(outboxScreen()) {
+Navigator::Navigator(forum::Api& api, Shell& shell, const std::filesystem::path& assets,
+                     wxl::async::stop_token token)
+    : api_(api), shell_(shell), watched_(watchedScreen()), outbox_(outboxScreen()), about_(std::move(token)) {
     messages_.setBaseDirectory(assets.wstring());
 
     host_.setScreen(Screen::forums, forums_.root());
@@ -41,6 +42,10 @@ Navigator::Navigator(forum::Api& api, Shell& shell, const std::filesystem::path&
     };
 
     splash_.onRetry = [this] { loadShowcase(); };
+
+    about_.onDismissed = [this] {
+        if (onAboutDismissed) onAboutDismissed();
+    };
 
     forums_.onOpen = [this](const forum::ForumDescription& forum) {
         open(Screen::forums, TopicsRoute{forum});

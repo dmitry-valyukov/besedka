@@ -5,16 +5,13 @@
 
 #include "aliases.h"
 #include "Card.h"
-#include "generated/Members.h"
+#include <wxl/Members.h>
 // Точка указателя: её отдаёт PointerRoutedEventArgs::getCurrentPoint, а
 // объявлена она здесь -- без этого заголовка тип виден только по имени.
-#include "generated/Microsoft.UI.Input.h"
-// Очередь интерфейсного потока и её таймер: ими откладывается запись
-// настроек.
-#include "generated/Microsoft.UI.Dispatching.h"
-#include "generated/Microsoft.UI.Xaml.Controls.h"
-#include "generated/Microsoft.UI.Xaml.Media.h"
-#include "generated/brushes.h"
+#include <wxl/Microsoft.UI.Input.h>
+#include <wxl/Microsoft.UI.Xaml.Controls.h>
+#include <wxl/Microsoft.UI.Xaml.Media.h>
+#include <wxl/brushes.h>
 #include "RsdnBlock.h"
 #include "ShowDialog.h"
 #include "launch.h"

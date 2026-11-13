@@ -40,7 +40,10 @@ class Navigator {
 public:
     /// Каркас и сервер -- чужие и живут дольше; всё, что на панелях каркаса
     /// ведёт к переходу, навигатор подключает к себе сам.
-    Navigator(forum::Api& api, Shell& shell, const std::filesystem::path& assets);
+    /// @param token токен общего источника приложения: под дочерним от него
+    ///        источником ждёт ответа диалог «О программе».
+    Navigator(forum::Api& api, Shell& shell, const std::filesystem::path& assets,
+              wxl::async::stop_token token);
 
     Navigator(const Navigator&) = delete;
     Navigator& operator=(const Navigator&) = delete;
@@ -71,6 +74,9 @@ public:
     /// каждом показе: диалог открывают редко, а запрос этот дешевле любого
     /// другого.
     void showAbout(const wxl::UIElement& host);
+
+    /// «О программе» закрыт -- сообщения, ждавшие его, могут показаться.
+    std::function<void()> onAboutDismissed;
 
     /// На экране заставка -- окну пора её задник.
     std::function<void()> onSplash;

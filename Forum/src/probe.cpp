@@ -25,7 +25,6 @@
 
 import std;
 import besedka.forum;
-import wxl.async;
 import wxl.core;
 
 namespace {

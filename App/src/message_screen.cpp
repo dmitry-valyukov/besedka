@@ -92,7 +92,7 @@ UIElement MessageScreen::messageCard(const forum::Message& message, const int de
     const double indent = kIndentStep * std::min(depth, kMaxSteps);
 
     auto head = Grid{
-        columnDefinitions = L"auto,*,auto",
+        ColumnDefinitions<u"auto,*,auto">,
         columnSpacing = 8,
 
         TextBlock{
@@ -128,7 +128,7 @@ UIElement MessageScreen::messageCard(const forum::Message& message, const int de
     };
 
     // Цвета цитат -- из палитры, там и сказано, откуда они.
-    body.theme(HtmlTheme{
+    body.theme(MarkupTheme{
         .quoteMargin = {12, 2, 0, 2},
         .quoteColor = {palette.quote[0], palette.quote[1], palette.quote[2]},
     });

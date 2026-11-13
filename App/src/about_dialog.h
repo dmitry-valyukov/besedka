@@ -9,6 +9,7 @@
 // Версия сервера приезжает отдельно и позже: её спрашивают у `/service_info`,
 // и до ответа строчки просто нет -- ровно как у jana, где `serviceInfo?.let`.
 
+#include <functional>
 #include <string>
 #include <string_view>
 
@@ -18,22 +19,38 @@ namespace besedka::app {
 
 class AboutDialog {
 public:
-    AboutDialog();
+    /// @param token токен общего источника приложения: от него -- свой
+    ///        источник диалога, и его отмена закрывает открытый.
+    explicit AboutDialog(wxl::async::stop_token token);
 
     /// Показывает поверх содержимого окна. Элемент, а не окно: XAML приходит в
     /// окно островом, и диалог вешается над тем островом, в котором стоит
     /// `host`.
     ///
-    /// Возврат сразу: диалог живёт, пока читатель не закроет его сам.
+    /// Возврат сразу: диалог живёт, пока читатель не закроет его сам или
+    /// закрытие окна не отменит его источник.
     void show(const wxl::UIElement& host);
 
     /// Строчка про сервер: «API v3.1 [2026-08-30]». Пустая -- значит, сервер
     /// ещё не ответил, и её не видно.
-    void setServerLine(std::wstring_view said);
+    void setServerLine(wxl::core::zstring_view said);
+
+    /// Диалог закрыт: сообщения, ждавшие его, могут показаться.
+    std::function<void()> onDismissed;
 
 private:
     wxl::core::nullable<wxl::ContentDialog> dialog_ = nullptr;
     wxl::core::nullable<wxl::TextBlock> server_ = nullptr;
+
+    /// Источник отмены диалога, дочерний от общего: под его токеном ждёт
+    /// ответа открытый диалог (showDialog), и закрытие окна, отменяя общий,
+    /// закрывает его.
+    wxl::async::stop_source dialogStop_;
+
+    /// Ожидание ответа открытого диалога -- последним: стоит под источником
+    /// выше. Открыть диалог можно, только когда прежний закрыт, и его
+    /// ожидание присваивается поверх кончившегося.
+    wxl::async::task<> dialogWait_;
 };
 
 }  // namespace besedka::app

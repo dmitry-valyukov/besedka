@@ -12,7 +12,6 @@
 #include <string>
 
 import besedka.forum;
-import wxl.json;
 import wxl.core;
 
 using namespace besedka;

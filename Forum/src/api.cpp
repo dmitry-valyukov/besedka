@@ -1,8 +1,6 @@
 module besedka.forum;
 
 import std;
-import wxl.async;
-import wxl.json;
 import wxl.core;
 
 namespace besedka::forum {
