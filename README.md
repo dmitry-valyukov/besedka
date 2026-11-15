@@ -36,7 +36,9 @@ run-besedka.cmd                 # собрать Debug и запустить
 `tools\build.ps1` и `run-besedka.cmd` идут через PowerShell 7 (`pwsh`). Скрипт
 сам поднимает окружение Visual Studio, так что годится обычная оболочка.
 Генератор — Ninja Multi-Config: генераторы Visual Studio не собирают
-`import std;`. googletest для тестов настройка собирает из исходников сама,
+`import std;`. Debug собирается с CRT в DLL, Release — со статической CRT,
+и вид CRT задаёт пресет (`CMAKE_MSVC_RUNTIME_LIBRARY`) для всего дерева
+вместе с wxl. googletest для тестов настройка собирает из исходников сама,
 тем же способом, что и wxl.
 
 Пул-реквесты проверяет GitHub Actions (`.github/workflows/ci.yml`): на
