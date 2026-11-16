@@ -3,14 +3,21 @@
 # экспериментального ключа.
 cmake_minimum_required(VERSION 4.5)
 
-# ---- wxl: базовая библиотека Беседки, соседнее дерево ----
+# ---- wxl: базовая библиотека Беседки, пакет WinXL или соседнее дерево ----
+#
+# Откуда берётся wxl, решает пресет. Пресет x64 берёт пакет NuGet WinXL:
+# подключает поставщика cmake/winxl-provider.cmake (копия файла wxl), и
+# find_package(wxl) ниже восстанавливает пакет по nuget.config и файлу
+# блокировки packages.lock.json в корне. Пресет x64-wxl-tree задаёт
+# BESEDKA_WXL_ROOT — корень соседнего дерева wxl, которое подключается
+# подкаталогом: так Беседка собирается с ещё не влитой парной веткой wxl.
 #
 # Путь проверяется до project(), чтобы дерево без wxl останавливалось сразу и
 # с понятным сообщением, а не на add_subdirectory ниже.
-set(BESEDKA_WXL_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../wxl" CACHE PATH
-    "Корень дерева wxl (даёт wxl::core, wxl::highlight и wxl::ui.full)")
+set(BESEDKA_WXL_ROOT "" CACHE PATH
+    "Корень соседнего дерева wxl (пресет x64-wxl-tree); пусто — wxl из пакета WinXL (пресет x64)")
 
-if(NOT EXISTS "${BESEDKA_WXL_ROOT}/CMakeLists.txt")
+if(BESEDKA_WXL_ROOT AND NOT EXISTS "${BESEDKA_WXL_ROOT}/CMakeLists.txt")
     message(FATAL_ERROR
         "Не найден wxl: ожидался в ${BESEDKA_WXL_ROOT}. "
         "Задайте -DBESEDKA_WXL_ROOT=<путь к дереву wxl>.")
@@ -20,6 +27,15 @@ project(Besedka
     VERSION 0.1.0
     DESCRIPTION "Besedka: RSDN forum client"
     LANGUAGES CXX)
+
+# Поставщик пакета регистрируется на первом project(). Настройка без пресета —
+# без поставщика и без соседнего дерева — остановлена здесь: find_package(wxl)
+# искал бы wxl по путям машины и мог найти чужую.
+if(NOT BESEDKA_WXL_ROOT AND NOT COMMAND winxl_provide_dependency)
+    message(FATAL_ERROR
+        "wxl не из чего взять: BESEDKA_WXL_ROOT пуст, а поставщик пакета WinXL не подключён. "
+        "Настройте пресетом x64 (пакет) или x64-wxl-tree (соседнее дерево).")
+endif()
 
 # ---- Язык: до подключения wxl и для всего дерева сразу ----
 #
@@ -51,27 +67,58 @@ endif()
 # того требует, а googletest (find_package(GTest)) отвечает её сценарий,
 # `cmake/wxl_gtest.cmake`: он собирает его из исходников на закреплённой метке,
 # тем же способом, что для собственных тестов wxl. Ставить пакет не нужно, а
-# машина и CI получают один и тот же gtest.
+# машина и CI получают один и тот же gtest. В пакете WinXL сценария нет, и
+# пресет x64 включает его копию из cmake/ этого дерева; пресет x64-wxl-tree —
+# файл самого соседнего дерева.
 option(BESEDKA_BUILD_TESTS "Собирать тесты" ON)
 if(BESEDKA_BUILD_TESTS)
     enable_testing()
-    include("${BESEDKA_WXL_ROOT}/cmake/wxl_gtest.cmake")
+    if(BESEDKA_WXL_ROOT)
+        include("${BESEDKA_WXL_ROOT}/cmake/wxl_gtest.cmake")
+    else()
+        include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/wxl_gtest.cmake")
+    endif()
     find_package(GTest CONFIG REQUIRED)
 endif()
 
 # ---- Подключение wxl ----
 #
-# Корень дерева целиком, как велит её раздел «Подключение wxl» (docs/building.md):
-# модули по отдельности не подключаются. Беседка получает бэкенд WinUI вместе с
-# генератором, которым собираются обёртки (WXL_UI, WXL_TOOLS), и не получает ни
-# примеров, ни песочницы, ни сайта, ни тестов wxl. Из-за генератора первая
-# настройка восстанавливает пакеты NuGet и строит проекцию cppwinrt (MSBuild
-# окружения разработчика, компонент C++ WinUI), поэтому ходит в сеть.
+# Пакет: find_package с наименьшей версией WinXL, которую Беседка принимает.
+# С 0.1.0.83 в пакете есть wxl.highlight, которую линкует besedka.rsdn, и
+# wxl.bb с wxl.rsdn, которые линкуют компоненты профиля forum, а профиль из
+# `extends` ищется и среди профилей пакета; с 0.1.0.84 у wxl есть действия,
+# которыми CI Беседки собирает пакет (.github/workflows/winxl.yml). Точную
+# версию держит файл блокировки packages.lock.json; NuGet берёт наименьшую
+# версию не ниже названной, так что переход на новую WinXL поднимает и это
+# число. Пакет несёт готовые библиотеки, генератор и профили; интерфейсы
+# модулей, обёртки профиля forum и его библиотеку сборка строит сама.
+#
+# Соседнее дерево: корень целиком, как велит её раздел «Подключение wxl»
+# (docs/building.md): модули по отдельности не подключаются. Беседка получает
+# бэкенд WinUI вместе с генератором, которым собираются обёртки (WXL_UI,
+# WXL_TOOLS), и не получает ни примеров, ни песочницы, ни сайта, ни тестов wxl.
+#
+# В обоих случаях первая настройка восстанавливает пакеты NuGet и строит
+# проекцию cppwinrt (MSBuild окружения разработчика, компонент C++ WinUI),
+# поэтому ходит в сеть.
 #
 # Цели, которые линкует Беседка: wxl::core — ядро одним модулем `wxl.core` со
-# всеми областями (fmt, async, xml, json, html), wxl::highlight, wxl::ui.full —
-# окно и контролы, Microsoft::CppWinRT — проекция для сети.
-add_subdirectory("${BESEDKA_WXL_ROOT}" wxl)
+# всеми областями (fmt, async, xml, json, html), wxl::highlight, wxl::ui.forum —
+# окно и контролы профиля Беседки (App/profile), Microsoft::CppWinRT — проекция
+# для сети.
+if(BESEDKA_WXL_ROOT)
+    add_subdirectory("${BESEDKA_WXL_ROOT}" wxl)
+else()
+    find_package(wxl 0.1.0.84 CONFIG REQUIRED)
+endif()
+
+# Библиотека профиля Беседки, wxl::ui.forum: обёртки профиля
+# App/profile/forum.winxl-profile, которые пишет генератор wxl, и компоненты,
+# которые профиль выбирает. Профиль продолжает full wxl; full лежит не рядом
+# с ним, и генератор с настройкой находят его среди профилей wxl -- пакета или
+# соседнего дерева. Это код wxl, поэтому библиотека объявлена здесь, до своих
+# ключей Беседки ниже, как прежде wxl::ui.full в дереве wxl.
+wxl_add_ui_library(forum PROFILE "${CMAKE_CURRENT_SOURCE_DIR}/App/profile/forum.winxl-profile")
 
 # Своё Беседки — строго после подключения wxl: у wxl свои NOMINMAX и
 # WIN32_LEAN_AND_MEAN в platform.h, и наши дали бы C4005 на каждом её файле.

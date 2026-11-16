@@ -5,7 +5,7 @@
 # XAML, ни сети; отсюда тесты в tests/.
 #
 # src/ -- исполняемый файл: окно, каркас, экраны и переходы между ними. Он
-# линкуется с wxl::ui.full, besedka::forum и besedka::app, и больше ничем.
+# линкуется с wxl::ui.forum, besedka::forum и besedka::app, и больше ничем.
 # Доступ к декларативной поверхности не должен стоить приложению разбора
 # проекции cppwinrt, и отсутствие её include-пути здесь -- то, что это
 # гарантирует.
@@ -62,7 +62,7 @@ target_link_libraries(besedka.app PRIVATE shell32)
 add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
 
 wxl_add_executable(Besedka
-    UI wxl::ui.full
+    UI wxl::ui.forum
     src/main.cpp
     src/navigator.cpp
     src/shell.cpp

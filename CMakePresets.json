@@ -21,8 +21,22 @@
     },
     {
       "name": "x64",
-      "displayName": "x64 (Ninja Multi-Config)",
-      "inherits": "base"
+      "displayName": "x64 (Ninja Multi-Config), wxl из пакета WinXL",
+      "description": "wxl из пакета NuGet WinXL: поставщик cmake/winxl-provider.cmake восстанавливает его по nuget.config и packages.lock.json.",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_PROJECT_TOP_LEVEL_INCLUDES": "${sourceDir}/cmake/winxl-provider.cmake",
+        "BESEDKA_WXL_ROOT": ""
+      }
+    },
+    {
+      "name": "x64-wxl-tree",
+      "displayName": "x64 (Ninja Multi-Config), wxl из соседнего дерева",
+      "description": "wxl из соседнего дерева BESEDKA_WXL_ROOT (по умолчанию ../wxl), подключённого подкаталогом: сборка с невлитой парной веткой wxl.",
+      "inherits": "base",
+      "cacheVariables": {
+        "BESEDKA_WXL_ROOT": "${sourceDir}/../wxl"
+      }
     }
   ],
   "buildPresets": [
@@ -36,6 +50,18 @@
       "name": "x64-release",
       "displayName": "x64 Release",
       "configurePreset": "x64",
+      "configuration": "Release"
+    },
+    {
+      "name": "x64-wxl-tree-debug",
+      "displayName": "x64 Debug, соседнее дерево wxl",
+      "configurePreset": "x64-wxl-tree",
+      "configuration": "Debug"
+    },
+    {
+      "name": "x64-wxl-tree-release",
+      "displayName": "x64 Release, соседнее дерево wxl",
+      "configurePreset": "x64-wxl-tree",
       "configuration": "Release"
     }
   ],
@@ -53,6 +79,24 @@
       "name": "x64-release",
       "displayName": "x64 Release",
       "configurePreset": "x64",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "x64-wxl-tree-debug",
+      "displayName": "x64 Debug, соседнее дерево wxl",
+      "configurePreset": "x64-wxl-tree",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "x64-wxl-tree-release",
+      "displayName": "x64 Release, соседнее дерево wxl",
+      "configurePreset": "x64-wxl-tree",
       "configuration": "Release",
       "output": {
         "outputOnFailure": true
