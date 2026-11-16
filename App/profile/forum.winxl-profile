@@ -1,7 +1,11 @@
 {
     "name": "forum",
-    "description": "Профиль Беседки: full wxl как есть. Беседка берёт из wxl.ui компоненты dsl, controls (Card), composition (CompositionWindow, TextureCache), effects (ZoomEffect), rsdn (RsdnBlock), dialogs (ShowDialog), accessibility (automationName) и компоненты base; dialogs и accessibility есть только в full, а типы и члены WinUI, которые Беседка зовёт сверх rich, не перечислены. Поэтому профиль продолжает full и ничего не убирает; сужение до rich с перечнем того, что Беседке нужно сверх него, — отдельная работа.",
+    "description": "Профиль Беседки: rich wxl и то, что Беседка зовёт сверх него. Из rich Беседка берёт компоненты dsl, controls (Card), composition (CompositionWindow), effects (ZoomEffect), rsdn (RsdnBlock) и компоненты base, automationName и toolTip — из elements. Сверх rich — компонент dialogs: ShowDialog, которым показываются сообщения (notices.cpp) и окно «О программе» (about_dialog.cpp).",
     "extends": [
-        "full"
+        "rich"
+    ],
+
+    "components": [
+        "dialogs"
     ]
 }

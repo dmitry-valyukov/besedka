@@ -63,7 +63,7 @@ jobs:
             preset: x64-release
     name: build (${{ matrix.config }})
     runs-on: windows-2025
-    # Библиотеки wxl приходят готовыми, но обёртки профиля Беседки (full wxl)
+    # Библиотеки wxl приходят готовыми, но обёртки профиля Беседки (rich wxl и сверх него)
     # компилируются здесь, вместе с самой Беседкой.
     timeout-minutes: 120
     env:
