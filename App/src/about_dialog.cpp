@@ -4,7 +4,6 @@
 namespace besedka::app {
 
 using namespace wxl;
-using namespace wxl::dsl;
 
 namespace {
 
@@ -28,6 +27,10 @@ constexpr double kImageHeight = kCardWidth;
 }  // namespace
 
 AboutDialog::AboutDialog(wxl::async::stop_token token) : dialogStop_(std::move(token)) {
+    // Теги разметки -- внутри построителя, не на уровне файла: там они
+    // накрыли бы обычные слова, и под /W4 каждое такое имя стало бы C4459.
+    using namespace wxl::dsl;
+
     server_ = TextBlock{
         fontSize = 10,
         hAlign.center,

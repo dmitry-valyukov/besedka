@@ -12,7 +12,6 @@
 namespace besedka::app {
 
 using namespace wxl;
-using namespace wxl::dsl;
 
 namespace {
 
@@ -44,6 +43,11 @@ ColumnDefinition pixelColumn(const double width) {
 }  // namespace
 
 PageHost::PageHost() {
+    // Теги разметки -- внутри построителя, не на уровне файла: там они
+    // накрыли бы обычные слова (column, width, children), и под /W4 каждое
+    // такое имя стало бы C4459.
+    using namespace wxl::dsl;
+
     splitter_ = Border{
         column = 1,
         background = palette.divider,
@@ -66,14 +70,14 @@ PageHost::PageHost() {
             [this](Object const&, PointerRoutedEventArgs& args) {
                 if (!dragging_) return;
 
-                const double width = root_.value().actualWidth();
+                const double total = root_.value().actualWidth();
 
-                if (width <= 0) return;
+                if (total <= 0) return;
 
                 // Доля считается от указателя, а не складыванием сдвигов:
                 // накопленная сумма разъезжается с рукой на каждом
                 // подрезанном пределом движении.
-                splitFraction(args.getCurrentPoint(root_.value()).position().x / width);
+                splitFraction(args.getCurrentPoint(root_.value()).position().x / total);
             },
 
         onPointerReleased +=

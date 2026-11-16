@@ -13,7 +13,6 @@
 namespace besedka::app {
 
 using namespace wxl;
-using namespace wxl::dsl;
 
 namespace {
 
@@ -57,6 +56,11 @@ constexpr double kCrumbGap = 8;        // вокруг косой черты
 /// объясняет. Подсказка идёт и в имя для доступности: содержимое кнопки --
 /// знак шрифта, и диктор без этого сказал бы «кнопка» и замолчал.
 Button iconButton(wchar_t code, std::wstring_view hint, std::function<void()> action) {
+    // Теги разметки -- внутри построителей, не на уровне файла: там они
+    // накрыли бы обычные слова (row, children), и под /W4 каждое такое имя
+    // стало бы C4459.
+    using namespace wxl::dsl;
+
     return Button{
         vAlign.center,
         Padding{8, 4},
@@ -79,6 +83,8 @@ bool altHeld() { return (::GetKeyState(VK_MENU) & 0x8000) != 0; }
 }  // namespace
 
 Shell::Shell() {
+    using namespace wxl::dsl;
+
     // ---- верхняя панель: она же заголовок окна ----
     //
     // Порт MainTopAppBar: слева «назад» и «вперёд», имя форума и кружок
@@ -124,7 +130,7 @@ Shell::Shell() {
     // недосмотр, а работа в wxl -- присвоенная кисть темы не следует за
     // сменой темы, а шаблоны WinUI после флипа перекрашиваются не все.
     // Проверено на этом же окне.
-    auto theme = iconButton(kThemeSystem, L"Системная тема", [this] {
+    auto themeButton = iconButton(kThemeSystem, L"Системная тема", [this] {
         setStatusText(L"Тема пока только системная: присвоенная кисть за сменой темы не "
                       L"идёт -- работа записана в wxl.");
     });
@@ -191,7 +197,7 @@ Shell::Shell() {
             refresh_.value(),
             ring_.value(),
         },
-        Grid{column = 1, theme},
+        Grid{column = 1, themeButton},
         Grid{column = 2, user},
         Grid{column = 3, about},
     };
@@ -298,11 +304,11 @@ Shell::Shell() {
         // есть с любой страницы. Масштаб с клавиш ведёт ZoomEffect окна.
         onKeyDown +=
             [this](Object const&, KeyRoutedEventArgs& args) {
-                const VirtualKey key = args.key();
+                const VirtualKey pressed = args.key();
 
-                if (key == VirtualKey::GoBack || (key == VirtualKey::Left && altHeld())) {
+                if (pressed == VirtualKey::GoBack || (pressed == VirtualKey::Left && altHeld())) {
                     if (onBack) onBack();
-                } else if (key == VirtualKey::GoForward || (key == VirtualKey::Right && altHeld())) {
+                } else if (pressed == VirtualKey::GoForward || (pressed == VirtualKey::Right && altHeld())) {
                     if (onForward) onForward();
                 } else {
                     return;
@@ -346,10 +352,12 @@ void Shell::setMiddle(const Middle what, const UIElement& element) {
 }
 
 void Shell::setBreadcrumb(const std::span<const std::wstring> crumbs) {
-    const Grid& row = crumbs_.value();
-    const Collection<UIElement> children = row.children();
+    using namespace wxl::dsl;
 
-    children.clear();
+    const Grid& trail = crumbs_.value();
+    const Collection<UIElement> links = trail.children();
+
+    links.clear();
 
     // Каждое звено -- в своей колонке по ширине текста, между ними косая
     // черта; последнее -- в звёздной, чтобы длинная тема резалась многоточием,
@@ -362,7 +370,7 @@ void Shell::setBreadcrumb(const std::span<const std::wstring> crumbs) {
         columns.push_back({1.0, at + 1 == crumbs.size() ? GridUnitType::Star : GridUnitType::Auto});
     }
 
-    Apply {row, columnDefinitions = columns};
+    Apply {trail, columnDefinitions = columns};
 
     std::int32_t next = 0;
 
@@ -370,7 +378,7 @@ void Shell::setBreadcrumb(const std::span<const std::wstring> crumbs) {
         const bool last = at + 1 == crumbs.size();
 
         if (at > 0)
-            children.append(TextBlock{
+            links.append(TextBlock{
                 column = next++,
                 L"/",
                 fontSize = kCrumbSize,
@@ -380,7 +388,7 @@ void Shell::setBreadcrumb(const std::span<const std::wstring> crumbs) {
             });
 
         // Где мы -- жирным и тёмным, откуда пришли -- тише.
-        children.append(TextBlock{
+        links.append(TextBlock{
             column = next++,
             std::wstring(crumbs[at]),
             fontSize = kCrumbSize,

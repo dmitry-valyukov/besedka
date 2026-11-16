@@ -52,7 +52,6 @@ import besedka.forum;
 import wxl.core;
 
 using namespace wxl;
-using namespace wxl::dsl;
 using namespace std::chrono_literals;
 
 namespace {
@@ -138,17 +137,21 @@ struct Besedka final : wxl::core::sta_refcounted, private wxl::core::noncopyable
     // Вторая -- у окна нет поверхности перенаправления
     // (WS_EX_NOREDIRECTIONBITMAP), значит нечему и белеть при быстрой растяжке
     // за угол.
+    //
+    // Теги -- с квалификатором `dsl::`: открытые директивой на весь файл, они
+    // накрыли бы обычные слова (name, title), и под /W4 каждое такое имя
+    // стало бы C4459, а в инициализаторе поля директиву открыть негде.
     CompositionWindow window{
-        title = L"Беседка",
-        minSize = {820, 560},
+        dsl::title = L"Беседка",
+        dsl::minSize = {820, 560},
 
         // Системный заголовок уходит, и клиентская область поднимается под
         // него. Верхняя панель каркаса -- заголовок окна: окно ставит её
         // строкой над каркасом и рядом рисует кнопки окна её высоты. Первым
         // делом: и пропорции заставки, и первый показ окна считаются уже без
         // системного заголовка.
-        extendsContentIntoTitleBar = true,
-        titleBar = shell.titleBar(),
+        dsl::extendsContentIntoTitleBar = true,
+        dsl::titleBar = shell.titleBar(),
 
         // Масштаб -- всего окна, заголовок и кнопки окна растут вместе со
         // страницами.
@@ -162,7 +165,7 @@ struct Besedka final : wxl::core::sta_refcounted, private wxl::core::noncopyable
         // «сейчас» следом будит его на последнюю запись: он просыпается внутри
         // вызова, снимает настройки этого мига и уходит писать. Дожидается
         // цикла его держатель, умирая с приложением.
-        onClosed += [this] {
+        dsl::onClosed += [this] {
             if (geometryWatch) windowMoved();
             stop.request_stop();
             settingsWrite.signal();
@@ -173,7 +176,7 @@ struct Besedka final : wxl::core::sta_refcounted, private wxl::core::noncopyable
         // масштаб прямо здесь: окно отдаёт физические пиксели, а страницам
         // нужны логические -- в них меряется текст, ради которого порог и
         // существует. Масштаб окна в делителе уже есть.
-        onClientSizeChanged +=
+        dsl::onClientSizeChanged +=
             [this](Object const&, ClientSize const& client) {
                 navigator.setWidth(client.size.width / client.scale);
             },
