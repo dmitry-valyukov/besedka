@@ -6,7 +6,6 @@
 namespace besedka::app {
 
 using namespace wxl;
-using namespace wxl::dsl;
 
 namespace {
 
@@ -16,6 +15,10 @@ constexpr wchar_t kOutbox = 0xE724;   // отправить
 /// Одинаковая для обеих: большой значок, название и строчка о том, чего
 /// ждать. Разница между ними -- только в этих трёх вещах.
 UIElement emptyScreen(wchar_t code, std::wstring_view heading, std::wstring_view promise) {
+    // Теги разметки -- внутри построителя, не на уровне файла: там они
+    // накрыли бы обычные слова, и под /W4 каждое такое имя стало бы C4459.
+    using namespace wxl::dsl;
+
     return Grid{
         StackPanel{
             hAlign.center,

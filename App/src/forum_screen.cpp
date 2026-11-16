@@ -11,7 +11,6 @@ import wxl.core;
 namespace besedka::app {
 
 using namespace wxl;
-using namespace wxl::dsl;
 
 namespace {
 
@@ -67,6 +66,11 @@ constexpr int kRateLimitShown = 30000;
 }  // namespace
 
 ForumScreen::ForumScreen() {
+    // Теги разметки -- внутри построителей, не на уровне файла: там они
+    // накрыли бы обычные слова (row, title, width), и под /W4 каждое такое
+    // имя стало бы C4459.
+    using namespace wxl::dsl;
+
     groups_ = StackPanel{
         hAlign.stretch,
         spacing = kListSpacing,
@@ -88,6 +92,8 @@ ForumScreen::ForumScreen() {
 }
 
 void ForumScreen::show(const std::vector<forum::ForumDescription>& forums) {
+    using namespace wxl::dsl;
+
     shown_ = forums;
 
     groups_.value().children().clear();
@@ -121,10 +127,12 @@ void ForumScreen::show(const std::vector<forum::ForumDescription>& forums) {
 }
 
 Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
+    using namespace wxl::dsl;
+
     const int id = forum.id;
     const bool primary = forum.isSiteSubject;
 
-    auto icon = FontIcon{
+    auto forumIcon = FontIcon{
         column = 0,
         glyph = glyph_of(kForum),
         fontSize = kIconSide,
@@ -134,7 +142,7 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
                              : Brush(palette.textTertiary),
     };
 
-    auto title = TextBlock{
+    auto heading = TextBlock{
         column = 0,
         std::wstring(forum.name),
         fontSize = kTitleSize,
@@ -214,7 +222,7 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
             // не шире, чем нужно». Звезда, ушедшая к правому краю, читалась
             // бы отдельной колонкой, а она -- часть названия.
             ColumnDefinitions<u"auto,*">,
-            title,
+            heading,
             marks,
         },
     };
@@ -230,7 +238,7 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
 
     lines.children().append(badges);
 
-    auto row = Button{
+    auto button = Button{
         hAlign.stretch,
         // Содержимое кнопки по умолчанию стоит по центру -- для строки это
         // значит текст посреди пустоты. Растянуть его надо явно, и это
@@ -244,7 +252,7 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
         automationName = std::wstring(forum.name),
         content = Grid{
             ColumnDefinitions<u"auto,*">,
-            icon,
+            forumIcon,
             lines,
         },
         // Оба щелчка ведут в одно место, а выбирает между ними то, где стоит
@@ -262,9 +270,9 @@ Button ForumScreen::forumRow(const forum::ForumDescription& forum) {
             },
     };
 
-    if (forum.isService) row.opacity(kServiceOpacity);
+    if (forum.isService) button.opacity(kServiceOpacity);
 
-    return row;
+    return button;
 }
 
 void ForumScreen::openById(const int32_t id) {

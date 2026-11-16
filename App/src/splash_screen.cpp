@@ -4,9 +4,12 @@
 namespace besedka::app {
 
 using namespace wxl;
-using namespace wxl::dsl;
 
 SplashScreen::SplashScreen() {
+    // Теги разметки -- внутри построителя, не на уровне файла: там они
+    // накрыли бы обычные слова, и под /W4 каждое такое имя стало бы C4459.
+    using namespace wxl::dsl;
+
     status_ = TextBlock{
         L"Здравствуйте!",
         fontSize = 15,

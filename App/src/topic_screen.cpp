@@ -10,7 +10,6 @@ import besedka.app;
 namespace besedka::app {
 
 using namespace wxl;
-using namespace wxl::dsl;
 
 namespace {
 
@@ -37,6 +36,11 @@ constexpr double kDateWidth = 80;      // TopicCard: фиксированная 
 }  // namespace
 
 TopicScreen::TopicScreen() {
+    // Теги разметки -- внутри построителей, не на уровне файла: там они
+    // накрыли бы обычные слова (message, value), и под /W4 каждое такое имя
+    // стало бы C4459.
+    using namespace wxl::dsl;
+
     topics_ = StackPanel{
         hAlign.stretch,
         spacing = kListSpacing,
@@ -62,6 +66,8 @@ void TopicScreen::setForum(const forum::ForumDescription& forum) {
 }
 
 void TopicScreen::setError(const std::wstring_view said) {
+    using namespace wxl::dsl;
+
     topics_.value().children().clear();
     topics_.value().children().append(TextBlock{
         std::wstring(said),
@@ -89,6 +95,8 @@ void TopicScreen::show(const forum::MessagePage& page) {
 Button TopicScreen::topicRow(const forum::MessageInfo& topic,
                              const std::chrono::system_clock::time_point now,
                              const std::chrono::time_zone& zone) {
+    using namespace wxl::dsl;
+
     const int id = topic.id;
 
     auto head = TextBlock{

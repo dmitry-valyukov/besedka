@@ -11,7 +11,6 @@ import besedka.app;
 namespace besedka::app {
 
 using namespace wxl;
-using namespace wxl::dsl;
 
 namespace {
 
@@ -38,6 +37,11 @@ constexpr int kMaxSteps = 12;
 }  // namespace
 
 MessageScreen::MessageScreen() {
+    // Теги разметки -- внутри построителей, не на уровне файла: там они
+    // накрыли бы обычные слова (message, value), и под /W4 каждое такое имя
+    // стало бы C4459.
+    using namespace wxl::dsl;
+
     messages_ = StackPanel{
         hAlign.stretch,
         spacing = kListSpacing,
@@ -67,6 +71,8 @@ void MessageScreen::setTopic(const forum::MessageInfo& topic) {
 }
 
 void MessageScreen::setError(const std::wstring_view said) {
+    using namespace wxl::dsl;
+
     messages_.value().children().clear();
     messages_.value().children().append(TextBlock{
         std::wstring(said),
@@ -89,6 +95,8 @@ void MessageScreen::show(const forum::MessagePage& page) {
 
 UIElement MessageScreen::messageCard(const forum::Message& message, const int depth,
                                      const std::chrono::time_zone& zone) {
+    using namespace wxl::dsl;
+
     const double indent = kIndentStep * std::min(depth, kMaxSteps);
 
     auto head = Grid{
