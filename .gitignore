@@ -3,6 +3,9 @@ build/
 out/
 CMakeUserPresets.json
 
+# Локальный каталог пакетов: WinXL, опубликованный tools/package/publish.cmake wxl
+feed/
+
 # Visual Studio
 .vs/
 *.user
