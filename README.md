@@ -21,10 +21,11 @@
   обёртки wxl готовит сама при настройке и сборке, поэтому первая настройка
   ходит в сеть;
 - Visual Studio с тулчейном, умеющим `import std;`, и компонентом C++ WinUI, и
-  CMake той версии, для которой шлюз `import std;` в wxl знает свой UUID;
+  CMake 4.5 или новее, как и самой wxl: с этого выпуска он даёт `import std;`
+  без экспериментального ключа;
 - для запуска — экспериментальная среда Windows App Runtime: её ставит утилита
   `winxl` (`-DWXL_WINXL=ON`): `winxl runtime install --packages
-  build\x64\wxl.packages\restored-packages.json`.
+  build\x64\wxl\wxl.packages\restored-packages.json`.
 
 ```
 tools\build.ps1                 # настроить (если нужно) и собрать Debug

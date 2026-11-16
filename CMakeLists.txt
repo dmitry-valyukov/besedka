@@ -1,22 +1,20 @@
-cmake_minimum_required(VERSION 4.3)
+# 4.5 — тот же минимум, что у wxl: с этого выпуска CMake даёт `import std;`
+# каждой цели C++20 и новее, чьи исходники сканируются на импорты, без
+# экспериментального ключа.
+cmake_minimum_required(VERSION 4.5)
 
 # ---- wxl: базовая библиотека Беседки, соседнее дерево ----
 #
-# Задаётся до project() по той же причине, что и у Буквицы: wxl собирается с
-# `import std;`, а экспериментальный шлюз CMake для него открывается только в
-# самом верхнем CMakeLists и только до project(). Скрипт шлюза живёт в wxl и
-# знает UUID, привязанный к версии CMake, — включаем его оттуда, чтобы не
-# заводить второе место, где этот UUID придётся обновлять.
+# Путь проверяется до project(), чтобы дерево без wxl останавливалось сразу и
+# с понятным сообщением, а не на add_subdirectory ниже.
 set(BESEDKA_WXL_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../wxl" CACHE PATH
     "Корень дерева wxl (даёт wxl::core, wxl::highlight и wxl::ui.full)")
 
-if(NOT EXISTS "${BESEDKA_WXL_ROOT}/cmake/wxl_import_std_gate.cmake")
+if(NOT EXISTS "${BESEDKA_WXL_ROOT}/CMakeLists.txt")
     message(FATAL_ERROR
         "Не найден wxl: ожидался в ${BESEDKA_WXL_ROOT}. "
         "Задайте -DBESEDKA_WXL_ROOT=<путь к дереву wxl>.")
 endif()
-
-include("${BESEDKA_WXL_ROOT}/cmake/wxl_import_std_gate.cmake")
 
 project(Besedka
     VERSION 0.1.0
@@ -38,10 +36,12 @@ project(Besedka
 # /W4 сюда не входит намеренно: уровень предупреждений на годность BMI не
 # влияет, а предупреждения wxl — её дело. Он стоит ниже, вместе с определениями,
 # и накрывает только код Беседки.
+#
+# Модуль std цель получает от сканирования исходников на импорты
+# (CMAKE_CXX_SCAN_FOR_MODULES): отдельного ключа для него в CMake 4.5 нет.
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_MODULE_STD 1)
 set(CMAKE_CXX_SCAN_FOR_MODULES ON)
 if(MSVC)
     add_compile_options(/permissive- /utf-8 /Zc:throwingNew /Zc:__cplusplus)
