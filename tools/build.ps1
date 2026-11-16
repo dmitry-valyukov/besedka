@@ -16,8 +16,10 @@
 # Использование:
 #   tools\build.ps1                  # настроить (если нужно) и собрать Debug
 #   tools\build.ps1 -Config Release
-#   tools\build.ps1 -Configure       # принудительно перенастроить
+#   tools\build.ps1 -Configure       # перенастроить и остановиться, не собирая
 #   tools\build.ps1 -Target forum-probe
+#   tools\build.ps1 -Configure -Target forum-probe  # перенастроить, затем собрать цель
+#   tools\build.ps1 -Jobs 6 -Target forum-probe     # не больше шести заданий сборки разом
 #   tools\build.ps1 -Preset x64-wxl-tree -Configure -Define BESEDKA_WXL_ROOT=M:/wxl
 
 [CmdletBinding()]
@@ -27,6 +29,11 @@ param(
     [string]$Preset = 'x64',
     [string]$Target,
     [switch]$Configure,
+
+    # Сколько заданий сборка запускает разом (`cmake --build --parallel`, у ninja
+    # это -j). 0 оставляет выбор ninja — по числу ядер машины.
+    [ValidateRange(0, [int]::MaxValue)]
+    [int]$Jobs = 0,
 
     # Записи кэша для шага настройки, без -D. Остаются в CMakeCache.txt, так что
     # следующий запуск без них сохраняет то, что было задано.
@@ -67,6 +74,15 @@ if ($Configure -or $Define -or -not (Test-Path (Join-Path $buildDir 'CMakeCache.
     foreach ($d in $Define) { $configureArgs += "-D$d" }
     cmake @configureArgs
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+    # -Configure сам по себе только перенастраивает: собирать всё дерево ради
+    # одной настройки незачем. Названную цель он после настройки собирает — так
+    # перенастраивают и сразу проверяют одну цель (скрипт wxl такое сочетание
+    # отвергает).
+    if ($Configure -and -not $Target) {
+        Write-Host 'Настройка завершена; сборка не запускалась (-Configure без -Target).' -ForegroundColor Green
+        exit 0
+    }
 }
 
 # Каталог сборки по имени, а не `--build --preset`: пресет сборки ищется в
@@ -76,5 +92,6 @@ if ($Configure -or $Define -or -not (Test-Path (Join-Path $buildDir 'CMakeCache.
 # здесь несут только каталог сборки и конфигурацию.
 $buildArgs = @('--build', $buildDir, '--config', $Config)
 if ($Target) { $buildArgs += @('--target', $Target) }
+if ($Jobs -gt 0) { $buildArgs += @('--parallel', $Jobs) }
 cmake @buildArgs
 exit $LASTEXITCODE
