@@ -58,7 +58,7 @@ Release: Debug Беседки берёт библиотеки с CRT в DLL, Rel
 
 ```
 tools\build.ps1 -Preset x64-wxl-tree
-tools\build.ps1 -Preset x64-wxl-tree -Configure -Define BESEDKA_WXL_ROOT=M:/wxl
+tools\build.ps1 -Preset x64-wxl-tree -Configure -Define BESEDKA_WXL_ROOT=M:/wxl   # только перенастроить
 ctest --preset x64-wxl-tree-debug
 ```
 
