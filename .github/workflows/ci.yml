@@ -122,7 +122,8 @@ jobs:
           & ./Besedka/tools/winxl-lock.ps1
 
       # googletest настройка берёт из его репозитория на закреплённой метке
-      # (cmake/wxl_gtest.cmake, копия сценария wxl) и собирает вместе с тестами.
+      # (wxl_gtest.cmake из пакета WinXL, WXL_GTEST_SCRIPT) и собирает вместе с
+      # тестами.
       - name: Configure
         shell: cmd
         working-directory: Besedka

@@ -68,8 +68,8 @@ ctest --preset x64-wxl-tree-debug
 `import std;`. Debug собирается с CRT в DLL, Release — со статической CRT,
 и вид CRT задаёт пресет (`CMAKE_MSVC_RUNTIME_LIBRARY`) для всего дерева
 вместе с wxl. googletest для тестов настройка собирает из исходников сама,
-тем же способом, что и wxl (с пакетом — копией её сценария,
-`cmake/wxl_gtest.cmake`).
+тем же способом, что и wxl, — её сценарием `cmake/wxl_gtest.cmake`: из пакета
+(`WXL_GTEST_SCRIPT`) или из соседнего дерева.
 
 Пул-реквесты проверяет GitHub Actions (`.github/workflows/ci.yml`): на
 Windows-машине дерево собирается в Debug и Release из пакета `WinXL`,

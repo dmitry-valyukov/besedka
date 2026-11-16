@@ -67,18 +67,16 @@ endif()
 # того требует, а googletest (find_package(GTest)) отвечает её сценарий,
 # `cmake/wxl_gtest.cmake`: он собирает его из исходников на закреплённой метке,
 # тем же способом, что для собственных тестов wxl. Ставить пакет не нужно, а
-# машина и CI получают один и тот же gtest. В пакете WinXL сценария нет, и
-# пресет x64 включает его копию из cmake/ этого дерева; пресет x64-wxl-tree —
-# файл самого соседнего дерева.
+# машина и CI получают один и тот же gtest. Пресет x64-wxl-tree включает файл
+# соседнего дерева здесь, до add_subdirectory, как велит сам сценарий; пресет
+# x64 — сценарий из пакета WinXL, который называет WXL_GTEST_SCRIPT, после
+# find_package(wxl) ниже.
 option(BESEDKA_BUILD_TESTS "Собирать тесты" ON)
 if(BESEDKA_BUILD_TESTS)
     enable_testing()
     if(BESEDKA_WXL_ROOT)
         include("${BESEDKA_WXL_ROOT}/cmake/wxl_gtest.cmake")
-    else()
-        include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/wxl_gtest.cmake")
     endif()
-    find_package(GTest CONFIG REQUIRED)
 endif()
 
 # ---- Подключение wxl ----
@@ -87,11 +85,14 @@ endif()
 # С 0.1.0.83 в пакете есть wxl.highlight, которую линкует besedka.rsdn, и
 # wxl.bb с wxl.rsdn, которые линкуют компоненты профиля forum, а профиль из
 # `extends` ищется и среди профилей пакета; с 0.1.0.84 у wxl есть действия,
-# которыми CI Беседки собирает пакет (.github/workflows/winxl.yml). Точную
-# версию держит файл блокировки packages.lock.json; NuGet берёт наименьшую
-# версию не ниже названной, так что переход на новую WinXL поднимает и это
-# число. Пакет несёт готовые библиотеки, генератор и профили; интерфейсы
-# модулей, обёртки профиля forum и его библиотеку сборка строит сама.
+# которыми CI Беседки собирает пакет (.github/workflows/winxl.yml); с 0.1.0.87
+# пакет несёт сценарий googletest wxl_gtest.cmake (WXL_GTEST_SCRIPT), а BMI
+# интерфейсов его модулей собираются без отладочной информации и не спорят за
+# общий vc140.pdb (C1041 в Debug). Точную версию держит файл блокировки
+# packages.lock.json; NuGet берёт наименьшую версию не ниже названной, так что
+# переход на новую WinXL поднимает и это число. Пакет несёт готовые
+# библиотеки, генератор и профили; интерфейсы модулей, обёртки профиля forum и
+# его библиотеку сборка строит сама.
 #
 # Соседнее дерево: корень целиком, как велит её раздел «Подключение wxl»
 # (docs/building.md): модули по отдельности не подключаются. Беседка получает
@@ -109,7 +110,13 @@ endif()
 if(BESEDKA_WXL_ROOT)
     add_subdirectory("${BESEDKA_WXL_ROOT}" wxl)
 else()
-    find_package(wxl 0.1.0.84 CONFIG REQUIRED)
+    find_package(wxl 0.1.0.87 CONFIG REQUIRED)
+    if(BESEDKA_BUILD_TESTS)
+        include("${WXL_GTEST_SCRIPT}")
+    endif()
+endif()
+if(BESEDKA_BUILD_TESTS)
+    find_package(GTest CONFIG REQUIRED)
 endif()
 
 # Библиотека профиля Беседки, wxl::ui.forum: обёртки профиля
