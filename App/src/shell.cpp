@@ -57,8 +57,7 @@ constexpr double kCrumbGap = 8;        // вокруг косой черты
 /// знак шрифта, и диктор без этого сказал бы «кнопка» и замолчал.
 Button iconButton(wchar_t code, std::wstring_view hint, std::function<void()> action) {
     // Теги разметки -- внутри построителей, не на уровне файла: там они
-    // накрыли бы обычные слова (row, children), и под /W4 каждое такое имя
-    // стало бы C4459.
+    // накрыли бы обычные слова (row, children) во всём файле.
     using namespace wxl::dsl;
 
     return Button{

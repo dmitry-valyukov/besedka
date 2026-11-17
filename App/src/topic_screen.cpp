@@ -37,8 +37,7 @@ constexpr double kDateWidth = 80;      // TopicCard: фиксированная 
 
 TopicScreen::TopicScreen() {
     // Теги разметки -- внутри построителей, не на уровне файла: там они
-    // накрыли бы обычные слова (message, value), и под /W4 каждое такое имя
-    // стало бы C4459.
+    // накрыли бы обычные слова (message, value) во всём файле.
     using namespace wxl::dsl;
 
     topics_ = StackPanel{

@@ -67,8 +67,7 @@ constexpr int kRateLimitShown = 30000;
 
 ForumScreen::ForumScreen() {
     // Теги разметки -- внутри построителей, не на уровне файла: там они
-    // накрыли бы обычные слова (row, title, width), и под /W4 каждое такое
-    // имя стало бы C4459.
+    // накрыли бы обычные слова (row, title, width) во всём файле.
     using namespace wxl::dsl;
 
     groups_ = StackPanel{

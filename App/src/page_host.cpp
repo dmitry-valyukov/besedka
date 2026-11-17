@@ -44,8 +44,7 @@ ColumnDefinition pixelColumn(const double width) {
 
 PageHost::PageHost() {
     // Теги разметки -- внутри построителя, не на уровне файла: там они
-    // накрыли бы обычные слова (column, width, children), и под /W4 каждое
-    // такое имя стало бы C4459.
+    // накрыли бы обычные слова (column, width, children) во всём файле.
     using namespace wxl::dsl;
 
     splitter_ = Border{
