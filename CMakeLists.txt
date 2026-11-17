@@ -8,14 +8,26 @@ cmake_minimum_required(VERSION 4.5)
 # Откуда берётся wxl, решает пресет. Пресет x64 берёт пакет NuGet WinXL:
 # подключает поставщика cmake/winxl-provider.cmake (копия файла wxl), и
 # find_package(wxl) ниже восстанавливает пакет по nuget.config и файлу
-# блокировки packages.lock.json в корне. Пресет x64-wxl-tree задаёт
+# блокировки packages.lock.json в корне. Пресет x64-wxl-tree берёт
 # BESEDKA_WXL_ROOT — корень соседнего дерева wxl, которое подключается
 # подкаталогом: так Беседка собирается с ещё не влитой парной веткой wxl.
+#
+# Сам корень пресет не задаёт, а задаёт умолчание BESEDKA_WXL_ROOT_DEFAULT
+# (../wxl), которое занимает только пустой корень. Переменные пресета
+# передаются при каждом cmake --preset, и корень из пресета при перенастройке
+# затирал бы путь, уже записанный в кэш, — например, в worktree, где ../wxl
+# нет. Явный -DBESEDKA_WXL_ROOT=… по-прежнему побеждает.
 #
 # Путь проверяется до project(), чтобы дерево без wxl останавливалось сразу и
 # с понятным сообщением, а не на add_subdirectory ниже.
 set(BESEDKA_WXL_ROOT "" CACHE PATH
     "Корень соседнего дерева wxl (пресет x64-wxl-tree); пусто — wxl из пакета WinXL (пресет x64)")
+set(BESEDKA_WXL_ROOT_DEFAULT "" CACHE PATH
+    "Корень соседнего дерева wxl, когда BESEDKA_WXL_ROOT пуст (пресет x64-wxl-tree: ../wxl)")
+
+if(NOT BESEDKA_WXL_ROOT AND BESEDKA_WXL_ROOT_DEFAULT)
+    set_property(CACHE BESEDKA_WXL_ROOT PROPERTY VALUE "${BESEDKA_WXL_ROOT_DEFAULT}")
+endif()
 
 if(BESEDKA_WXL_ROOT AND NOT EXISTS "${BESEDKA_WXL_ROOT}/CMakeLists.txt")
     message(FATAL_ERROR

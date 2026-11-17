@@ -32,10 +32,10 @@
     {
       "name": "x64-wxl-tree",
       "displayName": "x64 (Ninja Multi-Config), wxl из соседнего дерева",
-      "description": "wxl из соседнего дерева BESEDKA_WXL_ROOT (по умолчанию ../wxl), подключённого подкаталогом: сборка с невлитой парной веткой wxl.",
+      "description": "wxl из соседнего дерева BESEDKA_WXL_ROOT (по умолчанию ../wxl), подключённого подкаталогом: сборка с невлитой парной веткой wxl. Пресет задаёт только умолчание BESEDKA_WXL_ROOT_DEFAULT, поэтому путь, однажды записанный в кэш, перенастройка сохраняет.",
       "inherits": "base",
       "cacheVariables": {
-        "BESEDKA_WXL_ROOT": "${sourceDir}/../wxl"
+        "BESEDKA_WXL_ROOT_DEFAULT": "${sourceDir}/../wxl"
       }
     }
   ],
