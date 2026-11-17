@@ -16,7 +16,7 @@ constexpr wchar_t kOutbox = 0xE724;   // отправить
 /// ждать. Разница между ними -- только в этих трёх вещах.
 UIElement emptyScreen(wchar_t code, std::wstring_view heading, std::wstring_view promise) {
     // Теги разметки -- внутри построителя, не на уровне файла: там они
-    // накрыли бы обычные слова, и под /W4 каждое такое имя стало бы C4459.
+    // накрыли бы обычные слова во всём файле.
     using namespace wxl::dsl;
 
     return Grid{

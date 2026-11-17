@@ -28,7 +28,7 @@ constexpr double kImageHeight = kCardWidth;
 
 AboutDialog::AboutDialog(wxl::async::stop_token token) : dialogStop_(std::move(token)) {
     // Теги разметки -- внутри построителя, не на уровне файла: там они
-    // накрыли бы обычные слова, и под /W4 каждое такое имя стало бы C4459.
+    // накрыли бы обычные слова во всём файле.
     using namespace wxl::dsl;
 
     server_ = TextBlock{
