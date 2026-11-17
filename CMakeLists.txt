@@ -88,7 +88,8 @@ endif()
 # которыми CI Беседки собирает пакет (.github/workflows/winxl.yml); с 0.1.0.87
 # пакет несёт сценарий googletest wxl_gtest.cmake (WXL_GTEST_SCRIPT), а BMI
 # интерфейсов его модулей собираются без отладочной информации и не спорят за
-# общий vc140.pdb (C1041 в Debug). Точную версию держит файл блокировки
+# общий vc140.pdb (C1041 в Debug); с 0.1.0.93 параметры заголовков и модулей
+# wxl не прячут теги DSL, и /W4 Беседки не даёт C4459. Точную версию держит файл блокировки
 # packages.lock.json; NuGet берёт наименьшую версию не ниже названной, так что
 # переход на новую WinXL поднимает и это число. Пакет несёт готовые
 # библиотеки, генератор и профили; интерфейсы модулей, обёртки профиля forum и
@@ -110,7 +111,7 @@ endif()
 if(BESEDKA_WXL_ROOT)
     add_subdirectory("${BESEDKA_WXL_ROOT}" wxl)
 else()
-    find_package(wxl 0.1.0.87 CONFIG REQUIRED)
+    find_package(wxl 0.1.0.93 CONFIG REQUIRED)
     if(BESEDKA_BUILD_TESTS)
         include("${WXL_GTEST_SCRIPT}")
     endif()
